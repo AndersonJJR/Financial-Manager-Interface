@@ -1,0 +1,530 @@
+<div class="novo-lancamento-wrapper">
+  <!-- Header & Mode Switcher -->
+  <div class="top-row">
+    <div class="title-col">
+      <a routerLink="/lancamentos" class="back-link" data-path="lancamentos">
+        <span class="material-symbols-outlined back-icon">arrow_back</span>
+        <span>Voltar para Lançamentos</span>
+      </a>
+      <h1 class="page-title font-headline">Novo Lançamento</h1>
+      <p class="page-subtitle">
+        Cadastre uma transação única, compra parcelada ou assinatura recorrente.
+      </p>
+    </div>
+
+    <div class="modality-switcher" role="tablist" aria-label="Modalidade do lançamento">
+      <button
+        type="button"
+        class="modality-btn"
+        [class.modality-btn-active]="modalidade() === 'UNICA'"
+        (click)="selecionarModalidade('UNICA')"
+      >
+        <span>Única</span>
+      </button>
+
+      <button
+        type="button"
+        class="modality-btn"
+        [class.modality-btn-active]="modalidade() === 'PARCELADA'"
+        (click)="selecionarModalidade('PARCELADA')"
+      >
+        <span class="material-symbols-outlined modality-icon">credit_card</span>
+        <span>Parcelada</span>
+      </button>
+
+      <button
+        type="button"
+        class="modality-btn"
+        [class.modality-btn-active]="modalidade() === 'RECORRENTE'"
+        (click)="selecionarModalidade('RECORRENTE')"
+      >
+        <span>Recorrente</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main 12-Col Grid -->
+  <div class="content-grid">
+    <!-- Left Column: Form (8 cols) -->
+    <div class="col-form">
+      <form
+        [formGroup]="lancamentoForm"
+        (ngSubmit)="salvarLancamento()"
+        class="form-card"
+        novalidate
+      >
+        <div class="card-section-head">
+          <div class="section-kicker">
+            <span class="kicker-dot"></span>
+            <span class="kicker-text">
+              @if (modalidade() === 'PARCELADA') {
+                Dados da Compra Parcelada
+              } @else if (modalidade() === 'RECORRENTE') {
+                Dados da Transação Recorrente
+              } @else {
+                Dados do Lançamento Único
+              }
+            </span>
+          </div>
+          <span class="mode-badge font-mono">
+            @if (modalidade() === 'PARCELADA') {
+              Modo Parcelado
+            } @else if (modalidade() === 'RECORRENTE') {
+              Modo Recorrente
+            } @else {
+              Modo Único
+            }
+          </span>
+        </div>
+
+        <!-- Descrição -->
+        <div class="field-group">
+          <label class="field-label-row" for="desc">
+            <span>
+              {{ modalidade() === 'PARCELADA' ? 'Descrição da compra' : 'Descrição do lançamento' }}
+              <span class="req-violet">*</span>
+            </span>
+            <span class="char-counter font-mono">
+              {{ descricaoLength() }} / 150 caracteres
+            </span>
+          </label>
+          <input
+            id="desc"
+            type="text"
+            formControlName="descricao"
+            maxlength="150"
+            class="obsidian-input input-lg"
+            placeholder="Ex: Reforma da cozinha, Seguro veicular..."
+          />
+          @if (
+            lancamentoForm.controls.descricao.touched &&
+            lancamentoForm.controls.descricao.invalid
+          ) {
+            <p class="field-error-text">
+              A descrição é obrigatória e deve ter entre 2 e 150 caracteres.
+            </p>
+          }
+        </div>
+
+        <!-- Modo do Valor / Tipo + Valor -->
+        <div class="amount-panel">
+          @if (modalidade() === 'PARCELADA') {
+            <div class="amount-mode-col">
+              <label class="field-label-sm">Modo do valor</label>
+              <div class="segmented-2">
+                <button
+                  type="button"
+                  class="seg-btn"
+                  [class.seg-btn-active]="
+                    lancamentoForm.controls.modoValor.value === 'VALOR_TOTAL'
+                  "
+                  (click)="definirModoValor('VALOR_TOTAL')"
+                >
+                  Valor total
+                </button>
+                <button
+                  type="button"
+                  class="seg-btn"
+                  [class.seg-btn-active]="
+                    lancamentoForm.controls.modoValor.value === 'VALOR_PARCELA'
+                  "
+                  (click)="definirModoValor('VALOR_PARCELA')"
+                >
+                  Valor por parcela
+                </button>
+              </div>
+            </div>
+          } @else {
+            <div class="amount-mode-col">
+              <label class="field-label-sm">Tipo da transação</label>
+              <div class="segmented-2">
+                <button
+                  type="button"
+                  class="seg-btn"
+                  [class.seg-btn-active]="lancamentoForm.controls.tipo.value === 'DESPESA'"
+                  (click)="definirTipoTransacao('DESPESA')"
+                >
+                  Despesa
+                </button>
+                <button
+                  type="button"
+                  class="seg-btn"
+                  [class.seg-btn-active]="lancamentoForm.controls.tipo.value === 'RECEITA'"
+                  (click)="definirTipoTransacao('RECEITA')"
+                >
+                  Receita
+                </button>
+              </div>
+            </div>
+          }
+
+          <div class="amount-input-col">
+            <label class="field-label-row" for="total-amount">
+              <span>
+                @if (modalidade() === 'PARCELADA') {
+                  {{
+                    lancamentoForm.controls.modoValor.value === 'VALOR_TOTAL'
+                      ? 'Valor total'
+                      : 'Valor da parcela'
+                  }}
+                } @else if (modalidade() === 'RECORRENTE') {
+                  Valor fixo
+                } @else {
+                  Valor da transação
+                }
+                <span class="req-violet">*</span>
+              </span>
+              <span class="amount-hint">
+                @if (modalidade() === 'PARCELADA') {
+                  {{
+                    lancamentoForm.controls.modoValor.value === 'VALOR_TOTAL'
+                      ? 'A ser dividido em parcelas'
+                      : 'Multiplicado pelo total de parcelas'
+                  }}
+                } @else {
+                  Valor nominal em reais
+                }
+              </span>
+            </label>
+            <div class="currency-wrap">
+              <span class="currency-symbol font-mono">R$</span>
+              <input
+                id="total-amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                formControlName="valorInformado"
+                class="obsidian-input amount-big-input font-headline"
+              />
+            </div>
+            @if (
+              lancamentoForm.controls.valorInformado.touched &&
+              lancamentoForm.controls.valorInformado.invalid
+            ) {
+              <p class="field-error-text">O valor deve ser maior que zero.</p>
+            }
+          </div>
+        </div>
+
+        <!-- Parcelas / Ocorrências & Periodicidade (when PARCELADA or RECORRENTE) -->
+        @if (modalidade() !== 'UNICA') {
+          <div class="two-col-grid">
+            <div class="field-group">
+              <label class="field-label-sm" for="installments-count">
+                {{
+                  modalidade() === 'PARCELADA'
+                    ? 'Número de parcelas'
+                    : 'Quantidade de ocorrências'
+                }}
+                <span class="req-violet">*</span>
+              </label>
+              <div class="suffix-input-wrap">
+                <input
+                  id="installments-count"
+                  type="number"
+                  [min]="modalidade() === 'PARCELADA' ? 2 : 1"
+                  [max]="modalidade() === 'PARCELADA' ? 240 : 60"
+                  formControlName="totalParcelas"
+                  class="obsidian-input input-lg font-mono"
+                />
+                <span class="input-suffix">
+                  {{ modalidade() === 'PARCELADA' ? 'x vezes' : 'ocorrências' }}
+                </span>
+              </div>
+              @if (
+                lancamentoForm.controls.totalParcelas.touched &&
+                lancamentoForm.controls.totalParcelas.invalid
+              ) {
+                <p class="field-error-text">
+                  {{
+                    modalidade() === 'PARCELADA'
+                      ? 'Informe entre 2 e 240 parcelas.'
+                      : 'Informe entre 1 e 60 ocorrências.'
+                  }}
+                </p>
+              }
+            </div>
+
+            <div class="field-group">
+              <label class="field-label-sm" for="periodicity">
+                Periodicidade <span class="req-violet">*</span>
+              </label>
+              <div class="select-icon-wrap">
+                <select
+                  id="periodicity"
+                  formControlName="periodicidade"
+                  class="obsidian-select input-lg"
+                >
+                  @for (p of periodicidades; track p.valor) {
+                    <option [value]="p.valor">{{ p.rotulo }}</option>
+                  }
+                </select>
+                <span class="material-symbols-outlined select-right-chevron">expand_more</span>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- Data & Primeira Paga / Efetivada -->
+        <div class="two-col-grid items-center">
+          <div class="field-group">
+            <label class="field-label-sm" for="first-due-date">
+              @if (modalidade() === 'PARCELADA') {
+                Data da primeira parcela
+              } @else if (modalidade() === 'RECORRENTE') {
+                Data de início da recorrência
+              } @else {
+                Data de competência / vencimento
+              }
+              <span class="req-violet">*</span>
+            </label>
+            <input
+              id="first-due-date"
+              type="date"
+              formControlName="dataPrimeiraParcela"
+              class="obsidian-input input-lg font-mono"
+            />
+          </div>
+
+          <div class="toggle-card">
+            <div class="toggle-text">
+              <span class="toggle-title">
+                @if (modalidade() === 'PARCELADA') {
+                  1ª parcela já paga
+                } @else if (modalidade() === 'RECORRENTE') {
+                  1ª ocorrência já efetivada
+                } @else {
+                  Lançamento já efetivado
+                }
+              </span>
+              <span class="toggle-sub">Nasce efetivada na data informada</span>
+            </div>
+
+            <label class="switch-label">
+              <input
+                type="checkbox"
+                formControlName="primeiraParcelaPaga"
+                class="switch-checkbox"
+              />
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Conta & Categoria -->
+        <div class="two-col-grid">
+          <div class="field-group">
+            <label class="field-label-sm" for="account-select">
+              {{
+                tipoEfetivo() === 'RECEITA' ? 'Conta de destino' : 'Conta de débito'
+              }}
+              <span class="req-violet">*</span>
+            </label>
+            <div class="select-icon-wrap">
+              <span class="material-symbols-outlined select-left-icon icon-tertiary">
+                credit_card
+              </span>
+              <select
+                id="account-select"
+                formControlName="contaId"
+                class="obsidian-select input-lg select-with-icons"
+              >
+                <option value="" disabled>Selecione uma conta ativa</option>
+                @for (conta of contasAtivas(); track conta.id) {
+                  <option [value]="conta.id">
+                    {{ conta.nome }}{{ conta.instituicao ? ' - ' + conta.instituicao : '' }}
+                  </option>
+                }
+              </select>
+              <span class="material-symbols-outlined select-right-chevron">expand_more</span>
+            </div>
+            @if (
+              lancamentoForm.controls.contaId.touched && lancamentoForm.controls.contaId.invalid
+            ) {
+              <p class="field-error-text">Selecione uma conta financeira ativa.</p>
+            }
+          </div>
+
+          <div class="field-group">
+            <div class="field-label-row">
+              <label class="field-label-sm" for="category-select">
+                Categoria <span class="req-violet">*</span>
+              </label>
+              <span class="category-rule-hint">
+                <span class="material-symbols-outlined hint-icon">info</span>
+                {{
+                  tipoEfetivo() === 'DESPESA' ? 'Despesa obrigatória' : 'Receita obrigatória'
+                }}
+              </span>
+            </div>
+            <div class="select-icon-wrap">
+              <span class="material-symbols-outlined select-left-icon icon-primary">devices</span>
+              <select
+                id="category-select"
+                formControlName="categoriaId"
+                class="obsidian-select input-lg select-with-icons"
+              >
+                <option value="" disabled>Selecione uma categoria compatível</option>
+                @for (cat of categoriasCompativeis(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.nome }}</option>
+                }
+              </select>
+              <span class="material-symbols-outlined select-right-chevron">expand_more</span>
+            </div>
+            @if (
+              lancamentoForm.controls.categoriaId.touched &&
+              lancamentoForm.controls.categoriaId.invalid
+            ) {
+              <p class="field-error-text">
+                Selecione uma categoria ativa compatível com {{ tipoEfetivo() }}.
+              </p>
+            }
+          </div>
+        </div>
+
+        <!-- Observações -->
+        <div class="field-group">
+          <label class="field-label-sm" for="obs">Observações adicionais</label>
+          <textarea
+            id="obs"
+            rows="3"
+            maxlength="500"
+            formControlName="observacao"
+            class="obsidian-textarea"
+            placeholder="Informações para auditoria, detalhes da nota fiscal ou links..."
+          ></textarea>
+        </div>
+
+        @if (lancamentoForm.errors?.['installmentMinimum']; as minErr) {
+          <p class="field-error-text">{{ minErr }}</p>
+        }
+
+        <!-- Actions -->
+        <div class="form-footer-actions">
+          <a routerLink="/lancamentos" class="btn-ghost cancel-link" data-path="lancamentos">
+            Cancelar
+          </a>
+          <button
+            type="submit"
+            class="btn-primary save-btn"
+            [disabled]="salvando()"
+          >
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>{{ salvando() ? 'Salvando...' : 'Salvar lançamento' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Right Column: Live Preview (4 cols) -->
+    <div class="col-preview">
+      <div class="preview-card">
+        <div class="preview-head">
+          <div class="preview-title-wrap">
+            <span class="material-symbols-outlined icon-primary">tune</span>
+            <h2 class="preview-title">
+              {{
+                modalidade() === 'PARCELADA'
+                  ? 'Prévia do Parcelamento'
+                  : modalidade() === 'RECORRENTE'
+                    ? 'Prévia da Recorrência'
+                    : 'Resumo do Lançamento'
+              }}
+            </h2>
+          </div>
+          <span class="preview-cycle-pill font-mono">
+            {{ previa().totalParcelas }}x {{ rotuloPeriodicidadeAtual() }}
+          </span>
+        </div>
+
+        <div class="consolidated-box">
+          <div class="consolidated-top">
+            <span class="consolidated-label">Total consolidado</span>
+            <span class="consolidated-val font-headline font-mono">
+              {{ previa().valorTotalConsolidado | brlCurrency }}
+            </span>
+          </div>
+
+          <div class="progress-track">
+            <div class="progress-paid" [style.width.%]="previa().percentualPago"></div>
+            <div class="progress-pending" [style.width.%]="previa().percentualPendente"></div>
+          </div>
+
+          <div class="progress-legend">
+            <span class="legend-paid">
+              <span class="legend-dot"></span>
+              {{ previa().quantidadePagas }} paga ({{ previa().percentualPago }}%)
+            </span>
+            <span>
+              {{ previa().quantidadePendentes }} a vencer ({{ previa().percentualPendente }}%)
+            </span>
+          </div>
+        </div>
+
+        <div class="first-installment-box">
+          <div class="first-row">
+            <span>1ª parcela:</span>
+            <span class="font-mono val-tertiary">
+              {{ previa().valorPrimeiraParcela | brlCurrency }}
+            </span>
+          </div>
+          <p class="first-note">
+            Absorve eventuais resíduos de centavos no cálculo inicial.
+          </p>
+          @if (previa().totalParcelas > 1) {
+            <div class="remaining-row">
+              <span>Demais {{ previa().totalParcelas - 1 }} parcelas:</span>
+              <span class="font-mono">{{ previa().valorParcelaPadrao | brlCurrency }} cada</span>
+            </div>
+          }
+        </div>
+
+        <div class="schedule-section">
+          <span class="schedule-kicker">Cronograma de Vencimento</span>
+          <div class="schedule-list">
+            @for (item of previa().itensVisiveis; track item.numero) {
+              <div class="schedule-item" [class.schedule-item-first]="item.numero === 1">
+                <div class="schedule-left">
+                  <span
+                    class="schedule-num font-mono"
+                    [class.schedule-num-first]="item.numero === 1"
+                  >
+                    {{ item.numeroFormatado }}
+                  </span>
+                  <div class="schedule-dates">
+                    <span class="schedule-date">{{ item.dataFormatada }}</span>
+                    <span class="schedule-ref font-mono">{{ item.referencia }}</span>
+                  </div>
+                </div>
+
+                <div class="schedule-right">
+                  <span class="schedule-val font-mono">{{ item.valor | brlCurrency }}</span>
+                  @if (item.paga) {
+                    <span class="sched-badge sched-badge-paid">Paga</span>
+                  } @else {
+                    <span class="sched-badge sched-badge-pending">Pendente</span>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (previa().parcelasOcultasCount > 0) {
+              <div class="schedule-more-pill">
+                + {{ previa().parcelasOcultasCount }} parcelas adicionais até
+                {{ previa().dataUltimaParcelaFormatada }}
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="group-info-note">
+          <span class="material-symbols-outlined icon-primary">folder_shared</span>
+          <p>
+            Todas as parcelas serão agrupadas automaticamente sob o mesmo identificador de grupo
+            para controle e quitação conjunta.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
