@@ -1,0 +1,717 @@
+<div class="lancamentos-wrapper">
+  <!-- Top Bar / Action Center -->
+  <div class="top-action-bar">
+    <div>
+      <div class="kicker-line">
+        <span class="kicker-dot"></span>
+        <span class="kicker-label font-mono">
+          Gestão Financeira • {{ periodoService.labelCurto() }}
+        </span>
+      </div>
+      <h1 class="page-title font-headline">Lançamentos</h1>
+      <p class="page-subtitle">
+        Gerencie receitas, despesas fixas, recorrentes e parcelamentos.
+      </p>
+    </div>
+
+    <div class="action-buttons">
+      <!-- Export Menu Dropdown -->
+      <div class="export-dropdown-wrap">
+        <button
+          type="button"
+          class="btn-secondary export-trigger-btn"
+          (click)="alternarMenuExportar()"
+        >
+          <span class="material-symbols-outlined icon-sm">file_download</span>
+          <span>Exportar extrato</span>
+          <span class="material-symbols-outlined icon-xs">expand_more</span>
+        </button>
+
+        @if (menuExportarAberto()) {
+          <div class="export-menu">
+            <button
+              type="button"
+              class="export-menu-item"
+              (click)="exportarExtrato('CSV')"
+            >
+              <span>Exportar como CSV</span>
+              <span class="ext-tag font-mono">.csv</span>
+            </button>
+            <button
+              type="button"
+              class="export-menu-item"
+              (click)="exportarExtrato('JSON')"
+            >
+              <span>Exportar como JSON</span>
+              <span class="ext-tag font-mono">.json</span>
+            </button>
+          </div>
+        }
+      </div>
+
+      <!-- New Transaction Button -->
+      <a routerLink="/novo-lancamento" class="btn-primary" data-path="novo-lancamento">
+        <span class="material-symbols-outlined icon-sm">add</span>
+        <span>Novo lançamento</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Metric Summary Snippets -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-top">
+        <span>Receitas Filtradas</span>
+        <span class="material-symbols-outlined icon-tertiary">arrow_downward</span>
+      </div>
+      <div class="metric-val val-tertiary font-mono">
+        {{ receitasFiltradasValor() | brlCurrency : 'RECEITA' }}
+      </div>
+      <div class="metric-sub font-mono">
+        {{ receitasFiltradasCount() }}
+        {{ receitasFiltradasCount() === 1 ? 'lançamento recebido' : 'lançamentos recebidos' }}
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span>Despesas Filtradas</span>
+        <span class="material-symbols-outlined icon-error">arrow_upward</span>
+      </div>
+      <div class="metric-val val-error font-mono">
+        {{ despesasFiltradasValor() | brlCurrency : 'DESPESA' }}
+      </div>
+      <div class="metric-sub font-mono">
+        {{ despesasFiltradasCount() }}
+        {{ despesasFiltradasCount() === 1 ? 'despesa computada' : 'despesas computadas' }}
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span>Saldo do Período</span>
+        <span class="material-symbols-outlined icon-primary">account_balance</span>
+      </div>
+      <div class="metric-val font-mono">
+        {{ saldoPeriodoFiltrado() | brlCurrency : 'signed' }}
+      </div>
+      <div
+        class="metric-sub font-mono"
+        [class.sub-tertiary]="saldoPeriodoFiltrado() >= 0"
+        [class.sub-error]="saldoPeriodoFiltrado() < 0"
+      >
+        {{ saldoPeriodoFiltrado() >= 0 ? 'Superávit corrente' : 'Déficit no filtro' }}
+      </div>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-top">
+        <span>Contas a Pagar (Pendentes)</span>
+        <span class="material-symbols-outlined icon-amber">schedule</span>
+      </div>
+      <div class="metric-val val-amber font-mono">
+        {{ pendentesAPagarValor() | brlCurrency }}
+      </div>
+      <div class="metric-sub font-mono">
+        {{ pendentesAPagarCount() }}
+        {{ pendentesAPagarCount() === 1 ? 'lançamento aguardando' : 'lançamentos aguardando' }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Structured Filter Bar -->
+  <div class="filter-bar-card">
+    <div class="filter-bar-head">
+      <div class="filter-title-wrap">
+        <span class="material-symbols-outlined icon-primary">filter_list</span>
+        <span class="filter-title">Filtros Estruturados</span>
+      </div>
+      <button
+        type="button"
+        class="reset-filters-btn"
+        id="reset-filters"
+        (click)="limparFiltros()"
+      >
+        <span class="material-symbols-outlined icon-xs">restart_alt</span>
+        <span>Limpar filtros</span>
+      </button>
+    </div>
+
+    <div class="filters-grid">
+      <!-- Período de Competência -->
+      <div class="filter-field competence-field">
+        <label class="filter-label">Competência</label>
+        <div class="input-icon-wrap">
+          <input
+            type="text"
+            readonly
+            class="filter-input font-mono"
+            [value]="intervaloCompetenciaTexto()"
+            (click)="alternarPopoverDatas()"
+          />
+          <span class="material-symbols-outlined input-left-icon">date_range</span>
+        </div>
+
+        @if (popoverDatasAberto()) {
+          <div class="dates-popover">
+            <div class="dates-popover-grid">
+              <div>
+                <label class="filter-label" for="filtro-data-inicio">Data inicial</label>
+                <input
+                  id="filtro-data-inicio"
+                  type="date"
+                  class="filter-input font-mono"
+                  [value]="dataInicioFiltro()"
+                  (change)="atualizarDataInicio(($any($event.target)).value)"
+                />
+              </div>
+              <div>
+                <label class="filter-label" for="filtro-data-fim">Data final</label>
+                <input
+                  id="filtro-data-fim"
+                  type="date"
+                  class="filter-input font-mono"
+                  [value]="dataFimFiltro()"
+                  (change)="atualizarDataFim(($any($event.target)).value)"
+                />
+              </div>
+            </div>
+            <div class="dates-popover-actions">
+              <button type="button" class="btn-ghost" (click)="fecharPopoverDatas()">
+                Fechar
+              </button>
+              <button type="button" class="btn-primary" (click)="aplicarFiltroDatas()">
+                Aplicar período
+              </button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Tipo -->
+      <div class="filter-field">
+        <label class="filter-label" for="filter-tipo">Tipo</label>
+        <div class="select-wrap">
+          <select
+            id="filter-tipo"
+            class="filter-select"
+            [value]="filtroTipo()"
+            (change)="alterarFiltroTipo(($any($event.target)).value)"
+          >
+            <option value="">Todos os tipos</option>
+            <option value="RECEITA">Receita</option>
+            <option value="DESPESA">Despesa</option>
+          </select>
+          <span class="material-symbols-outlined select-chevron">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div class="filter-field">
+        <label class="filter-label" for="filter-status">Status</label>
+        <div class="select-wrap">
+          <select
+            id="filter-status"
+            class="filter-select"
+            [value]="filtroStatus()"
+            (change)="alterarFiltroStatus(($any($event.target)).value)"
+          >
+            <option value="">Todos os status</option>
+            <option value="EFETIVADA">Efetivada</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="CANCELADA">Cancelada</option>
+          </select>
+          <span class="material-symbols-outlined select-chevron">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Conta -->
+      <div class="filter-field">
+        <label class="filter-label" for="filter-conta">Conta / Cartão</label>
+        <div class="select-wrap">
+          <select
+            id="filter-conta"
+            class="filter-select"
+            [value]="filtroContaId()"
+            (change)="alterarFiltroConta(($any($event.target)).value)"
+          >
+            <option value="">Todas as contas</option>
+            @for (conta of contas(); track conta.id) {
+              <option [value]="conta.id">{{ conta.nome }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined select-chevron">expand_more</span>
+        </div>
+      </div>
+
+      <!-- Categoria -->
+      <div class="filter-field">
+        <label class="filter-label" for="filter-categoria">Categoria</label>
+        <div class="select-wrap">
+          <select
+            id="filter-categoria"
+            class="filter-select"
+            [value]="filtroCategoriaId()"
+            (change)="alterarFiltroCategoria(($any($event.target)).value)"
+          >
+            <option value="">Todas as categorias</option>
+            @for (cat of categorias(); track cat.id) {
+              <option [value]="cat.id">{{ cat.nome }}</option>
+            }
+          </select>
+          <span class="material-symbols-outlined select-chevron">expand_more</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table Container -->
+  <div class="table-container-card">
+    <div class="table-scroll">
+      <table class="tx-table">
+        <thead>
+          <tr class="tx-thead-row font-mono">
+            <th>Competência</th>
+            <th>Descrição</th>
+            <th>Conta</th>
+            <th>Categoria</th>
+            <th>Modalidade</th>
+            <th class="text-right">Valor</th>
+            <th class="text-center">Status</th>
+            <th class="text-right">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @if (carregando()) {
+            <tr>
+              <td colspan="8" class="empty-table-cell">Carregando lançamentos do período...</td>
+            </tr>
+          } @else if (lancamentos().length === 0) {
+            <tr>
+              <td colspan="8" class="empty-table-cell">
+                Nenhum lançamento encontrado com os filtros aplicados.
+              </td>
+            </tr>
+          } @else {
+            @for (tx of lancamentos(); track tx.id) {
+              <tr
+                class="tx-row"
+                [class.tx-row-pending]="tx.status === 'PENDENTE'"
+                [class.tx-row-canceled]="tx.status === 'CANCELADA'"
+              >
+                <td class="cell-date font-mono">{{ tx.dataCompetencia | dateBr }}</td>
+
+                <td class="cell-desc">
+                  <div class="desc-wrap">
+                    <span
+                      class="desc-dot"
+                      [class.dot-receita]="tx.tipo === 'RECEITA' && tx.status === 'EFETIVADA'"
+                      [class.dot-despesa]="tx.tipo === 'DESPESA' && tx.status === 'EFETIVADA'"
+                      [class.dot-pendente]="tx.status === 'PENDENTE'"
+                      [class.dot-cancelada]="tx.status === 'CANCELADA'"
+                    ></span>
+                    <span [class.line-through-text]="tx.status === 'CANCELADA'">
+                      {{ tx.descricao }}
+                    </span>
+                    @if (tx.grupoParcelamentoId) {
+                      <span class="group-tag font-mono">Grupo parcelas</span>
+                    }
+                  </div>
+                </td>
+
+                <td class="cell-account">
+                  <span class="account-inline">
+                    <span class="material-symbols-outlined account-icon">
+                      account_balance_wallet
+                    </span>
+                    <span>{{ tx.contaNome }}</span>
+                  </span>
+                </td>
+
+                <td class="cell-category">
+                  <span
+                    class="category-pill"
+                    [class.cat-pill-receita]="tx.tipo === 'RECEITA'"
+                    [class.cat-pill-despesa]="tx.tipo === 'DESPESA' && tx.status !== 'CANCELADA'"
+                    [class.cat-pill-cancelada]="tx.status === 'CANCELADA'"
+                  >
+                    <span class="cat-pill-dot"></span>
+                    {{ tx.tipo === 'RECEITA' ? 'Receita' : 'Despesa' }}: {{ tx.categoriaNome }}
+                  </span>
+                </td>
+
+                <td class="cell-modality font-mono">
+                  {{ formatarModalidade(tx) }}
+                </td>
+
+                <td
+                  class="cell-amount font-mono text-right"
+                  [class.val-tertiary]="tx.tipo === 'RECEITA' && tx.status !== 'CANCELADA'"
+                  [class.val-error]="tx.tipo === 'DESPESA' && tx.status !== 'CANCELADA'"
+                  [class.line-through-text]="tx.status === 'CANCELADA'"
+                >
+                  {{ tx.valor | brlCurrency : tx.tipo }}
+                </td>
+
+                <td class="cell-status text-center">
+                  @if (tx.status === 'EFETIVADA') {
+                    <span class="status-pill pill-efetivada">
+                      <span class="material-symbols-outlined status-icon">check_circle</span>
+                      Efetivada
+                    </span>
+                  } @else if (tx.status === 'PENDENTE') {
+                    <span class="status-pill pill-pendente">
+                      <span class="material-symbols-outlined status-icon">pending</span>
+                      Pendente
+                    </span>
+                  } @else {
+                    <span class="status-pill pill-cancelada">
+                      <span class="material-symbols-outlined status-icon">close</span>
+                      Cancelada
+                    </span>
+                  }
+                </td>
+
+                <td class="cell-actions text-right">
+                  <div class="actions-group">
+                    @if (tx.status === 'PENDENTE') {
+                      <button
+                        type="button"
+                        class="btn-efetivar-quick"
+                        (click)="abrirModalEfetivar(tx)"
+                      >
+                        <span class="material-symbols-outlined status-icon">check</span>
+                        <span>Efetivar</span>
+                      </button>
+                    }
+
+                    @if (tx.grupoParcelamentoId) {
+                      <button
+                        type="button"
+                        class="btn-ver-grupo"
+                        (click)="abrirModalGrupo(tx.grupoParcelamentoId!)"
+                      >
+                        Ver grupo
+                      </button>
+                    }
+
+                    <button
+                      type="button"
+                      class="icon-action-btn"
+                      title="Detalhes / Editar"
+                      (click)="abrirModalDetalhes(tx)"
+                    >
+                      <span class="material-symbols-outlined">visibility</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="icon-action-btn icon-action-danger"
+                      title="Excluir Lançamento"
+                      (click)="excluirLancamento(tx)"
+                    >
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Footer / Local Summary Bar -->
+    <div class="table-footer-bar font-mono">
+      <div class="footer-info">
+        <span class="material-symbols-outlined footer-info-icon">info</span>
+        <span>
+          Exibindo <strong class="strong-count">{{ lancamentos().length }}</strong> lançamentos no
+          período
+        </span>
+      </div>
+
+      <div class="footer-totals">
+        <div class="footer-total-item">
+          <span>Receitas do filtro:</span>
+          <span class="val-tertiary font-semibold">
+            {{ receitasFiltradasValor() | brlCurrency : 'RECEITA' }}
+          </span>
+        </div>
+        <div class="footer-sep"></div>
+        <div class="footer-total-item">
+          <span>Despesas do filtro:</span>
+          <span class="val-error font-semibold">
+            {{ despesasFiltradasValor() | brlCurrency : 'DESPESA' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 1: Efetivar Lançamento -->
+@if (transacaoParaEfetivar(); as txEfetivar) {
+  <div class="modal-backdrop" id="modal-efetivar" (click)="fecharModalEfetivar()">
+    <div class="modal-panel modal-sm" (click)="$event.stopPropagation()">
+      <button
+        type="button"
+        class="modal-close-top"
+        (click)="fecharModalEfetivar()"
+        aria-label="Fechar"
+      >
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="efetivar-head">
+        <div class="efetivar-icon-box">
+          <span class="material-symbols-outlined">check_circle</span>
+        </div>
+        <div>
+          <h3 class="efetivar-title">Efetivar Lançamento</h3>
+          <p class="efetivar-sub">Marcar lançamento como liquidado no extrato</p>
+        </div>
+      </div>
+
+      <div class="efetivar-summary-box">
+        <div class="summary-line">
+          <span>Lançamento:</span>
+          <span class="summary-desc" id="modal-desc">{{ txEfetivar.descricao }}</span>
+        </div>
+        <div class="summary-line">
+          <span>Valor:</span>
+          <span
+            class="font-mono summary-val"
+            [class.val-tertiary]="txEfetivar.tipo === 'RECEITA'"
+            [class.val-error]="txEfetivar.tipo === 'DESPESA'"
+            id="modal-val"
+          >
+            {{ txEfetivar.valor | brlCurrency : txEfetivar.tipo }}
+          </span>
+        </div>
+      </div>
+
+      <form (submit)="confirmarEfetivacao($event)" class="efetivar-form">
+        <div class="field-block">
+          <label class="field-label" for="data-pagamento-input">Data de Pagamento</label>
+          <div class="input-icon-wrap">
+            <input
+              id="data-pagamento-input"
+              type="date"
+              required
+              class="obsidian-input input-with-left-icon font-mono"
+              [value]="dataPagamentoEfetivacao()"
+              (input)="dataPagamentoEfetivacao.set(($any($event.target)).value)"
+            />
+            <span class="material-symbols-outlined input-left-icon">calendar_today</span>
+          </div>
+          <p class="field-hint">Sugerido: Hoje ({{ hojeIso | dateBr }})</p>
+        </div>
+
+        <div class="modal-footer-btns">
+          <button type="button" class="btn-secondary" (click)="fecharModalEfetivar()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="processandoAcao()">
+            <span class="material-symbols-outlined icon-xs">check</span>
+            <span>{{ processandoAcao() ? 'Confirmando...' : 'Confirmar Pagamento' }}</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal 2: Visualizar Grupo de Parcelas / Recorrência -->
+@if (grupoModalAberto()) {
+  <div class="modal-backdrop" (click)="fecharModalGrupo()">
+    <div class="modal-panel modal-lg" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close-top" (click)="fecharModalGrupo()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="efetivar-head">
+        <div class="efetivar-icon-box">
+          <span class="material-symbols-outlined">folder_shared</span>
+        </div>
+        <div>
+          <h3 class="efetivar-title">Lançamentos do Grupo</h3>
+          <p class="efetivar-sub">
+            Visualize todas as parcelas ou ocorrências vinculadas a este grupo
+          </p>
+        </div>
+      </div>
+
+      <div class="group-list-scroll">
+        @for (item of lancamentosDoGrupo(); track item.id) {
+          <div class="group-item-row">
+            <div class="group-item-left">
+              <span class="group-idx font-mono">
+                {{ item.parcelaAtual || 1 }}/{{ item.totalParcelas || lancamentosDoGrupo().length }}
+              </span>
+              <div>
+                <p class="group-item-title">{{ item.descricao }}</p>
+                <p class="group-item-date font-mono">
+                  Vencimento: {{ item.dataCompetencia | dateBr }}
+                </p>
+              </div>
+            </div>
+            <div class="group-item-right">
+              <span class="font-mono group-item-val">
+                {{ item.valor | brlCurrency : item.tipo }}
+              </span>
+              <span
+                class="status-pill"
+                [class.pill-efetivada]="item.status === 'EFETIVADA'"
+                [class.pill-pendente]="item.status === 'PENDENTE'"
+                [class.pill-cancelada]="item.status === 'CANCELADA'"
+              >
+                {{ item.status }}
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <div class="modal-footer-btns">
+        @if (possuiPendentesNoGrupo()) {
+          <button
+            type="button"
+            class="btn-cancel-group"
+            [disabled]="processandoAcao()"
+            (click)="cancelarPendentesGrupo()"
+          >
+            <span class="material-symbols-outlined icon-xs">block</span>
+            <span>Cancelar parcelas pendentes do grupo</span>
+          </button>
+        }
+        <button type="button" class="btn-secondary" (click)="fecharModalGrupo()">
+          Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal 3: Detalhes e Edição do Lançamento -->
+@if (transacaoEmEdicao(); as txEdit) {
+  <div class="modal-backdrop" (click)="fecharModalDetalhes()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <button type="button" class="modal-close-top" (click)="fecharModalDetalhes()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+
+      <div class="efetivar-head">
+        <div class="efetivar-icon-box">
+          <span class="material-symbols-outlined">edit_note</span>
+        </div>
+        <div>
+          <h3 class="efetivar-title">Detalhes do Lançamento</h3>
+          <p class="efetivar-sub">Visualize ou atualize os dados cadastrais da transação</p>
+        </div>
+      </div>
+
+      <form [formGroup]="edicaoForm" (ngSubmit)="salvarEdicao()" class="efetivar-form" novalidate>
+        <div class="field-block">
+          <label class="field-label" for="edit-desc">Descrição *</label>
+          <input
+            id="edit-desc"
+            type="text"
+            formControlName="descricao"
+            class="obsidian-input"
+            maxlength="150"
+          />
+        </div>
+
+        <div class="edit-grid-2">
+          <div class="field-block">
+            <label class="field-label" for="edit-valor">Valor (R$) *</label>
+            <input
+              id="edit-valor"
+              type="number"
+              step="0.01"
+              formControlName="valor"
+              class="obsidian-input font-mono"
+            />
+          </div>
+
+          <div class="field-block">
+            <label class="field-label" for="edit-status">Status *</label>
+            <select id="edit-status" formControlName="status" class="obsidian-select">
+              <option value="PENDENTE">Pendente</option>
+              <option value="EFETIVADA">Efetivada</option>
+              <option value="CANCELADA">Cancelada</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="edit-grid-2">
+          <div class="field-block">
+            <label class="field-label" for="edit-comp">Data de Competência *</label>
+            <input
+              id="edit-comp"
+              type="date"
+              formControlName="dataCompetencia"
+              class="obsidian-input font-mono"
+            />
+          </div>
+
+          <div class="field-block">
+            <label class="field-label" for="edit-pag">Data de Pagamento</label>
+            <input
+              id="edit-pag"
+              type="date"
+              formControlName="dataPagamento"
+              class="obsidian-input font-mono"
+            />
+          </div>
+        </div>
+
+        <div class="edit-grid-2">
+          <div class="field-block">
+            <label class="field-label" for="edit-conta">Conta *</label>
+            <select id="edit-conta" formControlName="contaId" class="obsidian-select">
+              @for (c of contas(); track c.id) {
+                <option [value]="c.id">{{ c.nome }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field-block">
+            <label class="field-label" for="edit-cat">Categoria *</label>
+            <select id="edit-cat" formControlName="categoriaId" class="obsidian-select">
+              @for (cat of categoriasCompativeisEdicao(); track cat.id) {
+                <option [value]="cat.id">{{ cat.nome }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="field-block">
+          <label class="field-label" for="edit-obs">Observação</label>
+          <textarea
+            id="edit-obs"
+            rows="2"
+            formControlName="observacao"
+            class="obsidian-textarea"
+            maxlength="500"
+          ></textarea>
+        </div>
+
+        @if (edicaoForm.errors?.['statusPaymentConsistency']; as consistencyErr) {
+          <p class="field-error-text">{{ consistencyErr }}</p>
+        }
+
+        <div class="modal-footer-btns">
+          <button type="button" class="btn-secondary" (click)="fecharModalDetalhes()">
+            Fechar
+          </button>
+          <button type="submit" class="btn-primary" [disabled]="processandoAcao()">
+            {{ processandoAcao() ? 'Salvando...' : 'Salvar alterações' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
