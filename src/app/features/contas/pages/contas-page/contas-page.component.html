@@ -1,0 +1,353 @@
+<div class="contas-wrapper">
+  <!-- Top Action & Overview Header -->
+  <div class="top-header">
+    <div>
+      <div class="module-kicker">
+        <span class="kicker-icon-box">
+          <span class="material-symbols-outlined kicker-icon">account_balance_wallet</span>
+        </span>
+        <span class="kicker-text font-mono">Módulo de Patrimônio</span>
+      </div>
+      <h1 class="page-title font-headline">Contas</h1>
+      <p class="page-subtitle">Organize onde seu dinheiro fica guardado e movimentado</p>
+    </div>
+
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-primary new-account-btn"
+        id="open-modal-btn"
+        (click)="abrirModalNovaConta()"
+      >
+        <span class="material-symbols-outlined">add</span>
+        <span>Nova conta</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Informational Banner -->
+  <div class="info-banner">
+    <div class="info-banner-icon">
+      <span class="material-symbols-outlined">info</span>
+    </div>
+    <div class="info-banner-body">
+      <p class="info-banner-title">Nota importante da arquitetura</p>
+      <p class="info-banner-desc">
+        A API registra o saldo inicial cadastrado. O FinancialManager não sincroniza saldo bancário
+        em tempo real via Open Finance — seu patrimônio atual é calculado com base nas entradas e
+        saídas consolidadas.
+      </p>
+    </div>
+    <div class="info-banner-accent"></div>
+  </div>
+
+  <!-- Filter / Segment Control & KPI Metric Ribbon -->
+  <div class="filter-ribbon">
+    <div class="filter-chips" role="tablist" aria-label="Filtro de status das contas">
+      <button
+        type="button"
+        class="filter-chip"
+        [class.filter-chip-active]="filtroStatus() === 'all'"
+        (click)="selecionarFiltro('all')"
+      >
+        <span>Todas as contas</span>
+        <span class="chip-count">{{ totalContasCount() }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-chip"
+        [class.filter-chip-active]="filtroStatus() === 'active'"
+        (click)="selecionarFiltro('active')"
+      >
+        <span>Ativas</span>
+        <span class="chip-count">{{ contasAtivasCount() }}</span>
+      </button>
+
+      <button
+        type="button"
+        class="filter-chip"
+        [class.filter-chip-active]="filtroStatus() === 'inactive'"
+        (click)="selecionarFiltro('inactive')"
+      >
+        <span>Inativas</span>
+        <span class="chip-count">{{ contasInativasCount() }}</span>
+      </button>
+    </div>
+
+    <div class="kpi-indicator">
+      <span class="kpi-dot"></span>
+      <span>
+        Base inicial consolidada:
+        <strong class="kpi-strong">{{ baseInicialConsolidada() | brlCurrency }}</strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- Accounts Grid -->
+  @if (carregando()) {
+    <div class="empty-state-card">
+      <span class="material-symbols-outlined empty-icon">hourglass_empty</span>
+      <p class="empty-title">Carregando contas financeiras...</p>
+    </div>
+  } @else if (contasFiltradas().length === 0) {
+    <div class="empty-state-card">
+      <span class="material-symbols-outlined empty-icon">account_balance_wallet</span>
+      <p class="empty-title">Nenhuma conta encontrada para o filtro selecionado</p>
+      <p class="empty-subtitle">
+        Cadastre sua primeira conta bancária, carteira ou cartão de crédito para iniciar os
+        lançamentos.
+      </p>
+      <button type="button" class="btn-primary" (click)="abrirModalNovaConta()">
+        <span class="material-symbols-outlined">add</span>
+        <span>Cadastrar conta</span>
+      </button>
+    </div>
+  } @else {
+    <div class="accounts-grid" id="accounts-grid">
+      @for (conta of contasFiltradas(); track conta.id) {
+        <article
+          class="account-card"
+          [class.account-card-inactive]="!conta.ativa"
+          [attr.data-status]="conta.ativa ? 'active' : 'inactive'"
+        >
+          <div class="card-top">
+            <div class="card-header-row">
+              <div class="card-identity">
+                <div class="card-icon-box" [class.card-icon-inactive]="!conta.ativa">
+                  <span class="material-symbols-outlined card-icon">
+                    {{ obterMetaTipo(conta.tipo).icone }}
+                  </span>
+                </div>
+                <div>
+                  <h3 class="card-title font-headline" [class.card-title-inactive]="!conta.ativa">
+                    {{ conta.nome }}
+                  </h3>
+                  <span class="card-type">{{ obterMetaTipo(conta.tipo).rotuloCurto }}</span>
+                </div>
+              </div>
+
+              @if (conta.ativa) {
+                <span class="status-badge status-badge-active">
+                  <span class="status-dot status-dot-active"></span>
+                  Ativa
+                </span>
+              } @else {
+                <span class="status-badge status-badge-inactive">
+                  <span class="status-dot status-dot-inactive"></span>
+                  Inativa
+                </span>
+              }
+            </div>
+
+            <div class="institution-row">
+              <span class="institution-tag" [class.institution-tag-inactive]="!conta.ativa">
+                Instituição: {{ conta.instituicao || 'Não informada' }}
+              </span>
+            </div>
+
+            <div class="balance-block">
+              <p class="balance-label font-mono">Saldo inicial cadastrado</p>
+              <p
+                class="balance-value font-headline"
+                [class.balance-value-inactive]="!conta.ativa"
+              >
+                {{ conta.saldoInicial | brlCurrency }}
+              </p>
+            </div>
+
+            @if (!conta.ativa) {
+              <div class="inactive-rule-banner">
+                <span class="material-symbols-outlined lock-icon">lock</span>
+                <span>
+                  Contas inativas não recebem novos lançamentos. Seus lançamentos históricos são
+                  preservados.
+                </span>
+              </div>
+            }
+          </div>
+
+          @if (conta.ativa) {
+            <div class="card-footer">
+              <button
+                type="button"
+                class="card-action-edit"
+                (click)="abrirModalEditarConta(conta)"
+              >
+                <span class="material-symbols-outlined action-icon">edit</span>
+                <span>Editar</span>
+              </button>
+
+              <button
+                type="button"
+                class="card-action-inactivate"
+                (click)="inativarConta(conta)"
+              >
+                <span class="material-symbols-outlined action-icon">block</span>
+                <span>Inativar</span>
+              </button>
+            </div>
+          } @else {
+            <div class="card-footer card-footer-end">
+              <button
+                type="button"
+                class="card-action-reactivate"
+                (click)="reativarConta(conta)"
+              >
+                <span class="material-symbols-outlined action-icon">restore</span>
+                <span>Reativar conta</span>
+              </button>
+            </div>
+          }
+        </article>
+      }
+    </div>
+  }
+
+  <!-- Educational Bottom Card -->
+  <div class="educational-card">
+    <div class="educational-text">
+      <h4 class="educational-title font-headline">Como o saldo em tempo real é apurado?</h4>
+      <p class="educational-desc">
+        Cada despesa ou receita confirmada adiciona ou subtrai do
+        <span class="highlight-text">saldo inicial cadastrado</span>. Para manter seus relatórios
+        acurados, certifique-se de registrar todos os seus lançamentos pontualmente.
+      </p>
+    </div>
+
+    <div class="flow-graphic">
+      <div class="flow-step">
+        <span class="flow-step-kicker font-mono">Base</span>
+        <span class="flow-pill flow-pill-primary">Saldo Inicial</span>
+      </div>
+      <span class="material-symbols-outlined flow-symbol">add</span>
+      <div class="flow-step">
+        <span class="flow-step-kicker font-mono">Movimentações</span>
+        <span class="flow-pill flow-pill-tertiary">Entradas &amp; Saídas</span>
+      </div>
+      <span class="material-symbols-outlined flow-symbol">arrow_forward</span>
+      <div class="flow-step">
+        <span class="flow-step-kicker font-mono">Resultado</span>
+        <span class="flow-pill flow-pill-solid">Saldo Real</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal / Dialog: 'Nova Conta' / 'Editar Conta' -->
+@if (modalAberto()) {
+  <div class="modal-backdrop" (click)="fecharModal()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 class="modal-title font-headline">
+            {{ contaEmEdicao() ? 'Editar conta' : 'Nova conta' }}
+          </h3>
+          <p class="modal-subtitle">
+            Cadastre uma nova carteira ou instituição bancária
+          </p>
+        </div>
+        <button
+          type="button"
+          class="modal-close-btn"
+          id="close-modal-btn"
+          (click)="fecharModal()"
+        >
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <form [formGroup]="contaForm" (ngSubmit)="salvarConta()" class="modal-form" novalidate>
+        <div class="form-field">
+          <label class="field-label" for="account-name">
+            Nome da conta <span class="req-star">*</span>
+          </label>
+          <input
+            id="account-name"
+            type="text"
+            formControlName="nome"
+            class="obsidian-input"
+            maxlength="100"
+            placeholder="Ex: Nubank Principal, Santander Reserva"
+          />
+          <p class="field-hint">Mínimo de 2 e máximo de 100 caracteres.</p>
+          @if (contaForm.controls.nome.touched && contaForm.controls.nome.invalid) {
+            <p class="field-error-text">
+              O nome da conta é obrigatório e deve ter entre 2 e 100 caracteres.
+            </p>
+          }
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="account-institution">
+            Instituição <span class="optional-tag">(opcional)</span>
+          </label>
+          <input
+            id="account-institution"
+            type="text"
+            formControlName="instituicao"
+            class="obsidian-input"
+            maxlength="100"
+            placeholder="Ex: Banco Inter, XP, Binance, Dinheiro em mãos"
+          />
+          @if (contaForm.controls.instituicao.touched && contaForm.controls.instituicao.invalid) {
+            <p class="field-error-text">A instituição deve ter no máximo 100 caracteres.</p>
+          }
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="account-type">
+            Tipo de conta <span class="req-star">*</span>
+          </label>
+          <select id="account-type" formControlName="tipo" class="obsidian-select">
+            @for (meta of tiposConta; track meta.valor) {
+              <option [value]="meta.valor">{{ meta.rotulo }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label" for="account-initial-balance">
+            Saldo inicial cadastrado
+          </label>
+          <div class="currency-input-wrapper">
+            <span class="currency-prefix font-mono">R$</span>
+            <input
+              id="account-initial-balance"
+              type="number"
+              step="0.01"
+              formControlName="saldoInicial"
+              class="obsidian-input currency-input font-mono"
+            />
+          </div>
+          <div class="verified-note">
+            <span class="material-symbols-outlined verified-icon">verified</span>
+            <span>
+              Atenção: Esse valor representa a base financeira a partir da qual as movimentações
+              serão somadas ou deduzidas.
+            </span>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button
+            type="button"
+            class="btn-ghost"
+            id="cancel-modal-btn"
+            (click)="fecharModal()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn-primary"
+            id="submit-modal-btn"
+            [disabled]="salvando()"
+          >
+            {{ salvando() ? 'Salvando...' : 'Salvar conta' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
