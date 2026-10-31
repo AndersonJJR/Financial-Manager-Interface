@@ -1,0 +1,336 @@
+<div class="visao-geral-wrapper">
+  <!-- Sub-bar / Month Navigation & Quick Actions -->
+  <div class="month-subbar">
+    <div class="month-nav-group">
+      <div class="month-stepper">
+        <button
+          type="button"
+          class="step-btn"
+          id="prevMonthBtn"
+          aria-label="Mês anterior"
+          title="Mês anterior"
+          (click)="mesAnterior()"
+        >
+          <span class="material-symbols-outlined">chevron_left</span>
+        </button>
+        <span class="step-divider"></span>
+        <button
+          type="button"
+          class="step-btn"
+          id="nextMonthBtn"
+          aria-label="Próximo mês"
+          title="Próximo mês"
+          (click)="proximoMes()"
+        >
+          <span class="material-symbols-outlined">chevron_right</span>
+        </button>
+      </div>
+
+      <div class="period-title-group">
+        <h2 class="period-heading font-headline" id="currentPeriodLabel">
+          {{ periodoService.labelExtenso() }}
+        </h2>
+        <span class="period-code-badge font-mono">{{ periodoService.codigoMesAno() }}</span>
+      </div>
+    </div>
+
+    <div class="subbar-actions">
+      <button
+        type="button"
+        class="export-btn"
+        [disabled]="exportando()"
+        (click)="exportarExtratoMes()"
+      >
+        <span class="material-symbols-outlined export-icon">file_download</span>
+        <span>{{ exportando() ? 'Exportando...' : 'Exportar extrato' }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Cards de Totais Consolidado -->
+  <div class="totals-grid">
+    <!-- Card 1: Receitas -->
+    <div class="kpi-card">
+      <div class="kpi-card-top">
+        <div class="kpi-label-group">
+          <span class="material-symbols-outlined kpi-icon-tertiary">arrow_circle_down</span>
+          <span class="kpi-title">Receitas</span>
+        </div>
+        <span class="badge-efetivadas">Efetivadas</span>
+      </div>
+
+      <div>
+        <p class="kpi-amount kpi-amount-tertiary font-headline">
+          {{ resumo().totalEntradasRealizadas | brlCurrency }}
+        </p>
+        <div class="kpi-footer">
+          <span>Previsto total:</span>
+          <span class="kpi-footer-val font-mono">
+            {{ resumo().totalEntradasPrevistas | brlCurrency }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Despesas -->
+    <div class="kpi-card">
+      <div class="kpi-card-top">
+        <div class="kpi-label-group">
+          <span class="material-symbols-outlined kpi-icon-error">arrow_circle_up</span>
+          <span class="kpi-title">Despesas</span>
+        </div>
+        <span class="badge-pagas">
+          Pagas: {{ resumo().totalSaidasPagas | brlCurrency }}
+        </span>
+      </div>
+
+      <div>
+        <div class="kpi-amount-row">
+          <p class="kpi-amount kpi-amount-error font-headline">
+            {{ resumo().totalSaidasConsolidado | brlCurrency }}
+          </p>
+          <span class="consolidado-tag font-mono">Consolidado</span>
+        </div>
+        <div class="kpi-footer">
+          <span>A pagar (pendente):</span>
+          <span class="kpi-footer-val kpi-val-amber font-mono">
+            {{ resumo().totalSaidasPrevistas | brlCurrency }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Saldo Realizado -->
+    <div class="kpi-card">
+      <div class="kpi-card-top">
+        <div class="kpi-label-group">
+          <span class="material-symbols-outlined kpi-icon-primary">check_circle</span>
+          <span class="kpi-title">Saldo Realizado</span>
+        </div>
+        <span
+          class="material-symbols-outlined trend-icon"
+          [class.trend-down]="resumo().saldoLiquidoRealizado < 0"
+        >
+          {{ resumo().saldoLiquidoRealizado >= 0 ? 'trending_up' : 'trending_down' }}
+        </span>
+      </div>
+
+      <div>
+        <p class="kpi-amount font-headline">
+          {{ resumo().saldoLiquidoRealizado | brlCurrency : 'signed' }}
+        </p>
+        <div class="kpi-footer">
+          <span>Efetivado líquido:</span>
+          <span
+            class="font-mono status-word"
+            [class.status-word-neg]="resumo().saldoLiquidoRealizado < 0"
+          >
+            {{ resumo().saldoLiquidoRealizado >= 0 ? 'Positivo' : 'Negativo' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 4: Saldo Projetado -->
+    <div class="kpi-card">
+      <div class="kpi-card-top">
+        <div class="kpi-label-group">
+          <span class="material-symbols-outlined kpi-icon-secondary">query_stats</span>
+          <span class="kpi-title">Saldo Projetado</span>
+        </div>
+        <span class="consolidado-tag font-mono">Fim do mês</span>
+      </div>
+
+      <div>
+        <p class="kpi-amount font-headline">
+          {{ resumo().saldoLiquidoPrevisto | brlCurrency : 'signed' }}
+        </p>
+        <div class="kpi-footer">
+          <span>Previsto líquido:</span>
+          <span
+            class="font-mono status-word"
+            [class.status-word-neg]="resumo().saldoLiquidoPrevisto < 0"
+          >
+            {{ resumo().saldoLiquidoPrevisto >= 0 ? 'Equilibrado' : 'Déficit' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="main-grid">
+    <!-- Left Column: Gastos por Categoria (7 cols) -->
+    <section class="panel-card col-categories">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title font-headline">Gastos por Categoria</h3>
+          <p class="panel-subtitle">
+            Total despesas consideradas: {{ resumo().totalSaidasConsolidado | brlCurrency }}
+          </p>
+        </div>
+        <span class="category-count-badge font-mono">
+          {{ segmentosDonut().length }} Categorias
+        </span>
+      </div>
+
+      @if (segmentosDonut().length === 0) {
+        <div class="empty-panel">
+          <span class="material-symbols-outlined empty-panel-icon">pie_chart</span>
+          <p class="empty-panel-title">Sem despesas registradas neste mês</p>
+          <p class="empty-panel-desc">
+            Adicione lançamentos de despesa para visualizar a distribuição por categoria.
+          </p>
+        </div>
+      } @else {
+        <!-- Donut Chart & Visual Distribution -->
+        <div class="donut-distribution-grid">
+          <div class="donut-box">
+            <div class="donut-svg-container">
+              <svg class="donut-svg" viewBox="0 0 100 100">
+                @for (seg of segmentosDonut(); track seg.categoriaId) {
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="39"
+                    fill="transparent"
+                    [attr.stroke]="seg.cor"
+                    [attr.stroke-dasharray]="seg.dashArray"
+                    [attr.stroke-dashoffset]="seg.dashOffset"
+                    stroke-width="12"
+                  ></circle>
+                }
+              </svg>
+              <div class="donut-center-label">
+                <span class="donut-center-kicker font-mono">Despesas</span>
+                <span class="donut-center-amount font-headline">
+                  {{ resumo().totalSaidasConsolidado | brlCurrency : 'compact' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="concentration-snapshot">
+            @if (maiorCategoria(); as topCat) {
+              <div class="snapshot-header">
+                <span class="snapshot-label">Maior concentração:</span>
+                <span class="snapshot-top-name">
+                  {{ topCat.categoriaNome }} ({{ formatarPercentual(topCat.percentual) }}%)
+                </span>
+              </div>
+            }
+
+            <div class="stacked-bar">
+              @for (seg of segmentosDonut(); track seg.categoriaId) {
+                <div
+                  class="stacked-segment"
+                  [style.width.%]="seg.percentual"
+                  [style.background-color]="seg.cor"
+                ></div>
+              }
+            </div>
+
+            <p class="snapshot-description">
+              {{ resumoConcentracaoTexto() }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Categories Detailed Breakdown List -->
+        <div class="category-breakdown-list">
+          @for (seg of segmentosDonut(); track seg.categoriaId) {
+            <div class="category-row">
+              <div class="category-row-left">
+                <span class="category-dot" [style.background-color]="seg.cor"></span>
+                <div>
+                  <p class="category-name">{{ seg.categoriaNome }}</p>
+                  <p class="category-tx-count">
+                    {{ seg.quantidadeTransacoes }}
+                    {{ seg.quantidadeTransacoes === 1 ? 'transação' : 'transações' }}
+                  </p>
+                </div>
+              </div>
+              <div class="category-row-right">
+                <p class="category-amount font-mono">{{ seg.valorNominal | brlCurrency }}</p>
+                <p class="category-percent font-mono">
+                  {{ formatarPercentual(seg.percentual) }}%
+                </p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Right Column: Últimos Lançamentos (5 cols) -->
+    <section class="panel-card col-recent">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title font-headline">Últimos lançamentos do mês</h3>
+          <p class="panel-subtitle">Registros recentes de {{ periodoService.nomeMes() }}</p>
+        </div>
+        <span class="material-symbols-outlined header-receipt-icon">receipt_long</span>
+      </div>
+
+      @if (ultimosLancamentos().length === 0) {
+        <div class="empty-panel">
+          <span class="material-symbols-outlined empty-panel-icon">receipt_long</span>
+          <p class="empty-panel-title">Nenhum lançamento em {{ periodoService.nomeMes() }}</p>
+          <p class="empty-panel-desc">
+            Clique em "Novo lançamento" para registrar receitas ou despesas neste período.
+          </p>
+        </div>
+      } @else {
+        <div class="recent-list">
+          @for (item of ultimosLancamentos(); track item.id) {
+            <div class="recent-item">
+              <div class="recent-item-top">
+                <div class="recent-item-title-wrap">
+                  @if (item.status === 'PENDENTE') {
+                    <span class="material-symbols-outlined icon-pending">pending</span>
+                  } @else if (item.tipo === 'RECEITA') {
+                    <span class="material-symbols-outlined icon-receita">add_circle</span>
+                  } @else {
+                    <span class="material-symbols-outlined icon-despesa">remove_circle</span>
+                  }
+                  <span class="recent-desc">{{ item.descricao }}</span>
+                </div>
+
+                <span
+                  class="recent-amount font-mono"
+                  [class.amount-receita]="item.tipo === 'RECEITA' && item.status === 'EFETIVADA'"
+                  [class.amount-despesa]="item.tipo === 'DESPESA' && item.status === 'EFETIVADA'"
+                >
+                  {{ item.valor | brlCurrency : item.tipo }}
+                </span>
+              </div>
+
+              <div class="recent-item-bottom">
+                <div class="recent-meta">
+                  <span class="font-mono recent-date">{{ item.dataCompetencia | dateBr }}</span>
+                  <span>•</span>
+                  <span class="recent-account">{{ item.contaNome }}</span>
+                </div>
+
+                @if (item.status === 'EFETIVADA') {
+                  <span class="status-tag status-tag-efetivada">Efetivada</span>
+                } @else if (item.status === 'PENDENTE') {
+                  <span class="status-tag status-tag-pendente">Pendente</span>
+                } @else {
+                  <span class="status-tag status-tag-cancelada">Cancelada</span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="view-all-wrapper">
+        <a routerLink="/lancamentos" class="view-all-link" data-path="lancamentos">
+          <span>Ver todos os lançamentos</span>
+          <span class="material-symbols-outlined view-all-arrow">arrow_forward</span>
+        </a>
+      </div>
+    </section>
+  </div>
+</div>
