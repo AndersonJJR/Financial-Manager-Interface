@@ -15,13 +15,13 @@ Interface web de gerenciamento financeiro pessoal construída com **Angular 22**
 | Integração Backend | API REST `/api/v1` via `HttpClient` e Proxy Reverso (`proxy.conf.json` -> `http://localhost:8080`) |
 | Autenticação | JWT Stateless (`Bearer <token>`) com `authInterceptor`, `authGuard` e `guestGuard` |
 | Variáveis Sensíveis | Arquivo `.env` na raiz do projeto sincronizado via `scripts/sync-env.mjs` |
-| Testes Automatizados | Vitest (`ng test --watch=false`) — 11 suítes / 22 testes passando |
+| Testes Automatizados | Vitest (`ng test --watch=false`) — 13 suítes / 32 testes passando |
 
 ---
 
 ## 2. Design System: Obsidian ("Precision in Darkness")
 
-Reproduzido fielmente a partir dos arquivos `DESIGN.md`, `code.html` e `screen.png` localizados nas quatro pastas de referência (`visao_geral`, `lancamentos`, `novo_lancamento` e `contas`):
+Reproduzido fielmente a partir dos arquivos `DESIGN.md`, `code.html` e `screen.png` localizados nas seis pastas de referência (`login`, `cadastro`, `visao_geral`, `lancamentos`, `novo_lancamento` e `contas`):
 
 - **Paleta de Superfícies (Escala Zinc):**
   - `--background` / `--surface-container-lowest`: `#09090b`
@@ -88,7 +88,9 @@ src/
 │   │       ├── domain-labels.util.ts          # Mapeamento DRY de ícones e rótulos de enums
 │   │       └── parcelamento-calculator.util.ts# Cálculo de parcelas, resíduos de centavos e datas
 │   └── features/                              # Módulos funcionais carregados sob demanda (Lazy Loading)
-│       ├── auth/pages/auth-page/
+│       ├── auth/pages/
+│       │   ├── login-page/                    # Tela dedicada de Login (todo/login)
+│       │   └── cadastro-page/                 # Tela dedicada de Cadastro (todo/cadastro)
 │       ├── visao-geral/pages/visao-geral-page/
 │       ├── lancamentos/pages/lancamentos-page/
 │       ├── novo-lancamento/pages/novo-lancamento-page/
@@ -153,17 +155,24 @@ As regras de validação de Bean Validation e os validadores de domínio do back
 4. **Status de Conta e Categoria (`ValidadorPropriedadeEStatusContaCategoria`):** Apenas contas e categorias com `ativa = true` podem receber novos lançamentos.
 5. **Valor Mínimo de Parcelamento (`ValidadorValorMinimoParcelamento`):** Exige entre 2 e 240 parcelas e verifica se o valor resultante de cada parcela é de no mínimo `R$ 0,01` (absorvendo resíduos de centavos na 1ª parcela quando `modoValor = VALOR_TOTAL`).
 6. **Consistência de Pagamento (`ValidadorConsistenciaStatusPagamento`):** Impede que lançamentos com status `CANCELADA` possuam `dataPagamento` preenchida.
+7. **Autenticação e Cadastro (`LoginRequest`, `CadastroUsuarioRequest`):** Validação de e-mail com sanitização de espaços (`FinancialValidators.trimmedEmail`), tamanho de nome (`2 a 120 caracteres`), senha (`6 a 100 caracteres`), confirmação de senha em tempo real (`FinancialValidators.passwordMatch`) e aceite obrigatório de termos na criação de conta.
 
 ---
 
 ## 7. Telas Reproduzidas e Funcionalidades
 
-1. **Visão Geral (`/visao-geral` — `todo/visao_geral`):**
+1. **Login (`/login` — `todo/login`):**
+   - Layout arquitetural de 12 colunas (6 colunas de proposta de valor com badge `Sessão Segura v2.4`, marca `FinancialManager`, cards de destaque `Controle de Ativos` e `Privacidade Rigorosa 256-bit` + 6 colunas para o card de autenticação).
+   - Seletor superior de navegação rápida (`Entrar na conta` / `Criar conta`), banner contextual dinâmico de status da sessão, campos com ícones e alternância de visibilidade de senha (`visibility` / `visibility_off`), feedback visual em tempo real e integração direta com `POST /api/v1/auth/login` (`LoginRequest: { email, senha }`).
+2. **Cadastro (`/cadastro` — `todo/cadastro`):**
+   - Container centralizado com iluminação radial atmosférica, cabeçalho de segurança (`Ambiente Seguro`) e card elevado (`Acesso Inicial / Setup 01 — Criar sua conta`).
+   - Formulário com validação reativa para `nome` (2 a 120 caracteres), `email` e grid duplo de `senha` + `confirmarSenha` com indicadores luminosos em tempo real (`Mínimo 6 caracteres` e `Deve coincidir` / `Senhas conferem` / `Senhas não coincidem`), checkbox customizado de aceite de termos, banner de onboarding pós-cadastro e integração direta com `POST /api/v1/auth/registrar` (`CadastroUsuarioRequest: { nome, email, senha }`).
+3. **Visão Geral (`/visao-geral` — `todo/visao_geral`):**
    - Barra de navegação mensal (`Mês anterior` / `Próximo mês`) sincronizada globalmente via `PeriodoService`.
    - 4 cartões consolidados (`Receitas`, `Despesas`, `Saldo Realizado`, `Saldo Projetado`) alimentados por `GET /api/v1/transacoes/resumo-mensal`.
    - Gráfico Donut SVG dinâmico e barra de concentração orçamentária por categoria (`gastosPorCategoria`).
    - Lista dos últimos lançamentos do mês (`GET /api/v1/transacoes`) e botão de exportação rápida de extrato (`GET /api/v1/transacoes/exportar`).
-2. **Lançamentos (`/lancamentos` — `todo/lancamentos`):**
+4. **Lançamentos (`/lancamentos` — `todo/lancamentos`):**
    - Cartões de métricas filtradas (`Receitas Filtradas`, `Despesas Filtradas`, `Saldo do Período`, `Contas a Pagar Pendentes`).
    - Barra de **Filtros Estruturados** (`Competência`, `Tipo`, `Status`, `Conta / Cartão`, `Categoria`) e botão `Limpar filtros`.
    - Tabela de transações com badges de status, modalidade, conta, categoria e ações rápidas:
@@ -171,10 +180,10 @@ As regras de validação de Bean Validation e os validadores de domínio do back
      - **Ver grupo (`GET /api/v1/transacoes/grupos/{grupoId}`)** e cancelamento em lote de parcelas futuras pendentes (`DELETE /api/v1/transacoes/grupos/{grupoId}/pendentes`).
      - **Detalhes / Editar (`PUT /api/v1/transacoes/{id}`)** e **Excluir (`DELETE /api/v1/transacoes/{id}`)**.
    - Menu dropdown para exportar extrato em `.csv` ou `.json`.
-3. **Novo Lançamento (`/novo-lancamento` — `todo/novo_lancamento`):**
+5. **Novo Lançamento (`/novo-lancamento` — `todo/novo_lancamento`):**
    - Seletor de modalidade (`Única`, `Parcelada`, `Recorrente`) integrado a `POST /transacoes`, `POST /transacoes/parceladas` e `POST /transacoes/recorrentes`.
    - Painel lateral sticky **Prévia do Parcelamento** com cálculo em tempo real do total consolidado, barra de progresso paga vs. a vencer, absorção de resíduos de centavos na 1ª parcela e cronograma de vencimentos.
-4. **Contas (`/contas` — `todo/contas`):**
+6. **Contas (`/contas` — `todo/contas`):**
    - Banner arquitetural sobre apuração de saldo, filtros por chip (`Todas as contas`, `Ativas`, `Inativas`) e indicador de `Base inicial consolidada`.
    - Grid de cartões de contas ativas e inativas (com aviso de bloqueio de novos lançamentos em contas inativas).
    - Modal de criação/edição (`POST /api/v1/contas`, `PUT /api/v1/contas/{id}`), inativação lógica (`DELETE /api/v1/contas/{id}`) e reativação (`PUT /api/v1/contas/{id}` com `ativa: true`).
