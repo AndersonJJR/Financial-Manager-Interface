@@ -1,0 +1,226 @@
+<main class="login-viewport">
+  <!-- Subtle Background Ambient Light -->
+  <div class="ambient-glow ambient-glow--top-left" aria-hidden="true"></div>
+  <div class="ambient-glow ambient-glow--bottom-right" aria-hidden="true"></div>
+
+  <div class="login-grid">
+    <!-- Left Column: Brand Identity & Value Proposition -->
+    <section class="brand-column" aria-label="Identidade FinancialManager">
+      <div class="brand-top">
+        <!-- Brand Mark -->
+        <div class="session-badge">
+          <span class="session-badge__dot" aria-hidden="true"></span>
+          <span class="session-badge__text">Sessão Segura v2.4</span>
+        </div>
+
+        <div class="brand-identity">
+          <div class="brand-identity__logo-box">
+            <span class="material-symbols-outlined icon-filled brand-identity__icon">query_stats</span>
+          </div>
+          <span class="brand-identity__name">
+            Financial<span class="brand-identity__accent">Manager</span>
+          </span>
+        </div>
+
+        <h1 class="brand-headline">
+          Gestão financeira pessoal com clareza e controle.
+        </h1>
+
+        <p class="brand-description">
+          Visão consolidada do seu patrimônio, fluxo de caixa em tempo real e orçamentos preditivos em uma interface de alta fidelidade.
+        </p>
+      </div>
+
+      <!-- Subtle Architectural Feature Highlights -->
+      <div class="feature-cards-grid">
+        <article class="feature-card">
+          <div class="feature-card__header">
+            <span class="feature-card__label">Controle de Ativos</span>
+            <span class="material-symbols-outlined feature-card__icon feature-card__icon--tertiary">
+              trending_up
+            </span>
+          </div>
+          <div class="feature-card__value">R$ 142.850,00</div>
+          <div class="feature-card__meta feature-card__meta--positive">
+            <span class="material-symbols-outlined feature-card__meta-icon">arrow_upward</span>
+            <span>+3.8% este mês</span>
+          </div>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-card__header">
+            <span class="feature-card__label">Privacidade Rigorosa</span>
+            <span class="material-symbols-outlined feature-card__icon feature-card__icon--primary">
+              shield_lock
+            </span>
+          </div>
+          <div class="feature-card__value">256-bit</div>
+          <div class="feature-card__meta">
+            <span>Criptografia em repouso</span>
+          </div>
+        </article>
+      </div>
+
+      <div class="brand-trust-footer">
+        <span class="material-symbols-outlined brand-trust-footer__icon">verified_user</span>
+        <span>Acesso direto restrito. Credenciais criptografadas sem provedores de terceiros.</span>
+      </div>
+    </section>
+
+    <!-- Right Column: Authentication Card -->
+    <section class="card-column" aria-label="Autenticação de usuário">
+      <div class="auth-card">
+        <!-- Card Header & Tab Switcher -->
+        <div class="auth-card__header">
+          <div class="auth-tabs" role="tablist" aria-label="Alternar entre login e cadastro">
+            <button
+              type="button"
+              role="tab"
+              aria-selected="true"
+              class="auth-tabs__btn auth-tabs__btn--active"
+            >
+              Entrar na conta
+            </button>
+            <a
+              routerLink="/cadastro"
+              role="tab"
+              aria-selected="false"
+              class="auth-tabs__btn"
+            >
+              Criar conta
+            </a>
+          </div>
+
+          <!-- Context / Status Notice -->
+          <div
+            class="context-notice"
+            [class.context-notice--success]="authSuccess()"
+            role="status"
+          >
+            <span
+              class="material-symbols-outlined context-notice__icon"
+              [class.context-notice__icon--success]="authSuccess()"
+            >
+              {{ authSuccess() ? 'check_circle' : 'info' }}
+            </span>
+            <p class="context-notice__text">
+              {{
+                authSuccess()
+                  ? 'Credenciais validadas. Iniciando sua sessão segura...'
+                  : 'Informe suas credenciais para continuar sua sessão.'
+              }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Login Form -->
+        <form
+          [formGroup]="loginForm"
+          (ngSubmit)="submitLogin()"
+          class="login-form"
+          novalidate
+        >
+          <!-- Email Field -->
+          <div class="field-group">
+            <div class="field-group__header">
+              <label for="login-email" class="field-label">E-mail</label>
+              <span class="field-badge">Obrigatório</span>
+            </div>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-wrapper__icon">mail</span>
+              <input
+                id="login-email"
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                placeholder="seu@email.com"
+                class="field-input field-input--with-left-icon"
+                [class.field-input--error]="hasFieldError('email')"
+                [class.field-input--valid]="isFieldValid('email')"
+              />
+            </div>
+            @if (getFieldError('email'); as error) {
+              <span class="field-error-text" role="alert">{{ error }}</span>
+            }
+          </div>
+
+          <!-- Password Field -->
+          <div class="field-group">
+            <div class="field-group__header">
+              <label for="login-password" class="field-label">Senha (6-100 caracteres)</label>
+              <span class="field-badge">Obrigatório</span>
+            </div>
+            <div class="input-wrapper">
+              <span class="material-symbols-outlined input-wrapper__icon">lock</span>
+              <input
+                id="login-password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="senha"
+                autocomplete="current-password"
+                placeholder="••••••••••••"
+                minlength="6"
+                maxlength="100"
+                class="field-input field-input--with-both-icons"
+                [class.field-input--error]="hasFieldError('senha')"
+                [class.field-input--valid]="isFieldValid('senha')"
+              />
+              <button
+                type="button"
+                (click)="togglePasswordVisibility()"
+                class="password-toggle-btn"
+                [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+              >
+                <span class="material-symbols-outlined">
+                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+            @if (getFieldError('senha'); as error) {
+              <span class="field-error-text" role="alert">{{ error }}</span>
+            }
+          </div>
+
+          <!-- Session Info Micro-detail -->
+          <div class="session-info">
+            <span class="material-symbols-outlined session-info__icon">schedule</span>
+            <span>Sessão válida por 24 horas após o acesso.</span>
+          </div>
+
+          <!-- Inline Validation / Error State Banner -->
+          @if (errorMessage(); as errorMsg) {
+            <div class="error-banner" role="alert">
+              <span class="material-symbols-outlined error-banner__icon">error</span>
+              <span>{{ errorMsg }}</span>
+            </div>
+          }
+
+          <!-- Primary CTA Button -->
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="loading()"
+          >
+            @if (loading()) {
+              <span class="submit-btn__spinner" aria-hidden="true"></span>
+              <span>Autenticando sessão...</span>
+            } @else {
+              <span>Entrar no FinancialManager</span>
+              <span class="material-symbols-outlined submit-btn__arrow">arrow_forward</span>
+            }
+          </button>
+        </form>
+
+        <!-- Secondary Action / Footer -->
+        <footer class="auth-card__footer">
+          <p class="auth-card__switch-prompt">
+            Ainda não possui uma conta?
+            <a routerLink="/cadastro" class="auth-card__switch-link">Criar conta</a>
+          </p>
+          <p class="auth-card__security-note">
+            Acesso seguro e direto. Não utilizamos provedores externos.
+          </p>
+        </footer>
+      </div>
+    </section>
+  </div>
+</main>
