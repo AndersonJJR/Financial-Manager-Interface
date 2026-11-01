@@ -1,0 +1,313 @@
+<div class="perfil-layout">
+  <!-- Cabeçalho de Identidade e Contexto -->
+  <header class="perfil-header">
+    <div class="header-titles">
+      <div class="status-badge">
+        <span class="status-pulse-dot" aria-hidden="true"></span>
+        <span class="font-mono">SEGURANÇA &amp; IDENTIDADE</span>
+      </div>
+      <h1 class="page-title font-headline">Perfil do Usuário</h1>
+      <p class="page-subtitle">
+        Dados cadastrais, escopo de permissões e integridade da sessão local.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button
+        type="button"
+        class="btn-secondary"
+        (click)="sincronizarTudo()"
+        [disabled]="carregando()"
+        title="Sincronizar dados do perfil com a API"
+      >
+        <span class="material-symbols-outlined" [class.spin-animation]="carregando()">sync</span>
+        <span>{{ carregando() ? 'Sincronizando...' : 'Atualizar dados' }}</span>
+      </button>
+    </div>
+  </header>
+
+  @if (usuario(); as u) {
+    <!-- Layout Principal em Colunas Assimétricas -->
+    <div class="perfil-grid">
+      <!-- Coluna Esquerda: Cartão de Identidade Primária e Escopo (5 colunas) -->
+      <div class="column-left">
+        <!-- Card do Usuário Principal -->
+        <section class="card user-card">
+          <div class="ambient-glow" aria-hidden="true"></div>
+
+          <div class="user-card-top">
+            <div class="avatar-container">
+              <div class="user-avatar-initials" aria-label="Iniciais do usuário">
+                {{ extrairIniciais(u.nome) }}
+              </div>
+              <span class="online-indicator" title="Sessão autenticada ativa">
+                <span class="online-dot"></span>
+              </span>
+            </div>
+
+            <div class="user-headline">
+              <div class="user-name-row">
+                <h2 class="user-display-name font-headline">{{ u.nome }}</h2>
+                <span class="active-badge" [class.inactive]="!u.ativo">
+                  <span class="badge-dot"></span>
+                  {{ u.ativo ? 'Ativo' : 'Inativo' }}
+                </span>
+              </div>
+              <p class="user-email-text font-mono">{{ u.email }}</p>
+            </div>
+          </div>
+
+          <!-- Metadados da Conta -->
+          <div class="metadata-box">
+            <div class="metadata-row">
+              <span class="metadata-label">
+                <span class="material-symbols-outlined icon-sm">calendar_month</span>
+                Membro desde
+              </span>
+              <span class="metadata-value font-mono">{{ formatarMembroDesde(u.criadoEm) }}</span>
+            </div>
+
+            <div class="metadata-row">
+              <span class="metadata-label">
+                <span class="material-symbols-outlined icon-sm">fingerprint</span>
+                Identificador (UUID)
+              </span>
+              <span class="metadata-value font-mono truncate-uuid" [title]="u.id">{{ u.id }}</span>
+            </div>
+
+            <div class="metadata-row">
+              <span class="metadata-label">
+                <span class="material-symbols-outlined icon-sm">shield</span>
+                Segurança de Acesso
+              </span>
+              <span class="metadata-value font-mono text-tertiary">JWT Stateless (Ativa)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Resumo do Escopo de Recursos (Cards Métricos) -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Contas ativas</span>
+              <span class="material-symbols-outlined metric-icon-primary">account_balance_wallet</span>
+            </div>
+            <div class="metric-body">
+              <span class="metric-number font-headline">{{ contasAtivasCount() }}</span>
+              <p class="metric-caption">
+                {{ totalContasCount() === 1 ? '1 conta cadastrada' : totalContasCount() + ' contas cadastradas' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Categorização</span>
+              <span class="material-symbols-outlined metric-icon-tertiary">sell</span>
+            </div>
+            <div class="metric-body">
+              <span class="metric-number font-headline">{{ totalCategoriasCount() }}</span>
+              <p class="metric-caption">Categorias personalizadas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coluna Direita: Detalhes Cadastrais, Sessão & Controles (7 colunas) -->
+      <div class="column-right">
+        <!-- Bloco Cadastral Formal -->
+        <section class="card cadastral-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title font-headline">Dados Cadastrais</h3>
+              <p class="card-description">Registros vinculados ao banco operacional.</p>
+            </div>
+
+            @if (!editandoNome()) {
+              <button
+                type="button"
+                class="btn-ghost edit-btn"
+                (click)="iniciarEdicaoNome()"
+                title="Editar nome completo"
+              >
+                <span class="material-symbols-outlined icon-sm">edit</span>
+                <span>Editar</span>
+              </button>
+            }
+          </div>
+
+          <div class="cadastral-body">
+            <!-- Campo Nome -->
+            <div class="form-field">
+              <div class="field-label-row">
+                <label for="input-perfil-nome" class="field-label">Nome Completo</label>
+                <span class="field-rule font-mono">2 a 120 caracteres</span>
+              </div>
+
+              @if (editandoNome()) {
+                <form [formGroup]="formNome" (ngSubmit)="salvarNome()" class="name-edit-form">
+                  <div class="input-with-icon">
+                    <input
+                      id="input-perfil-nome"
+                      type="text"
+                      class="obsidian-input"
+                      formControlName="nome"
+                      maxlength="120"
+                      placeholder="Seu nome completo"
+                      autofocus
+                    />
+                    <span class="material-symbols-outlined input-icon text-secondary">edit</span>
+                  </div>
+
+                  @if (formNome.get('nome')?.touched && formNome.get('nome')?.invalid) {
+                    <p class="field-error-text">
+                      O nome é obrigatório e deve ter entre 2 e 120 caracteres.
+                    </p>
+                  }
+
+                  <div class="edit-actions">
+                    <button
+                      type="button"
+                      class="btn-secondary btn-sm"
+                      (click)="cancelarEdicaoNome()"
+                      [disabled]="salvandoNome()"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      class="btn-primary btn-sm"
+                      [disabled]="formNome.invalid || salvandoNome()"
+                    >
+                      <span class="material-symbols-outlined icon-sm">check</span>
+                      <span>{{ salvandoNome() ? 'Salvando...' : 'Salvar alterações' }}</span>
+                    </button>
+                  </div>
+                </form>
+              } @else {
+                <div class="input-with-icon">
+                  <input
+                    id="input-perfil-nome"
+                    type="text"
+                    class="obsidian-input readonly-input"
+                    readonly
+                    [value]="u.nome"
+                  />
+                  <span class="material-symbols-outlined input-icon text-secondary">check_circle</span>
+                </div>
+              }
+              <p class="field-hint">Nome legível exibido nos relatórios e cabeçalho do painel.</p>
+            </div>
+
+            <!-- Campo E-mail -->
+            <div class="form-field">
+              <div class="field-label-row">
+                <label for="input-perfil-email" class="field-label">
+                  E-mail Primário (Login de acesso)
+                </label>
+                <span class="field-rule font-mono">Somente leitura</span>
+              </div>
+              <div class="input-with-icon">
+                <input
+                  id="input-perfil-email"
+                  type="email"
+                  class="obsidian-input readonly-input font-mono cursor-locked"
+                  readonly
+                  [value]="u.email"
+                />
+                <span class="material-symbols-outlined input-icon text-secondary">lock</span>
+              </div>
+              <p class="field-hint">
+                O identificador de e-mail é estático e não pode ser reatribuído nesta versão.
+              </p>
+            </div>
+
+            <!-- Perfil e Permissões -->
+            <div class="scope-box">
+              <div class="scope-text">
+                <span class="scope-title">Escopo de Operação</span>
+                <span class="scope-description">
+                  Lançamentos pessoais, categorização financeira e gestão de contas.
+                </span>
+              </div>
+              <div class="scope-badge">
+                <span class="material-symbols-outlined icon-sm">verified_user</span>
+                <span>{{ u.role === 'ROLE_ADMIN' ? 'Administrador' : 'Conta Pessoal' }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Zona de Encerramento de Sessão -->
+        <section class="card logout-zone-card">
+          <div class="logout-zone-info">
+            <h4 class="logout-zone-title font-headline">Encerramento de Sessão</h4>
+            <p class="logout-zone-description">
+              O logout encerra a sessão local neste navegador e invalida as chaves de acesso em memória.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="logout-button"
+            (click)="abrirModalLogout()"
+            title="Encerrar sessão no dispositivo atual"
+          >
+            <span class="material-symbols-outlined icon-sm">logout</span>
+            <span>Encerrar sessão</span>
+          </button>
+        </section>
+      </div>
+    </div>
+  } @else {
+    <!-- Estado de Carregamento Esqueleto -->
+    <div class="loading-state">
+      <span class="material-symbols-outlined spin-animation loading-spinner">sync</span>
+      <p class="loading-text">Carregando dados do perfil...</p>
+    </div>
+  }
+
+  <!-- Dialog / Confirmação de Logout Dinâmico -->
+  @if (modalLogoutAberto()) {
+    <div class="modal-backdrop" (click)="fecharModalLogout()">
+      <div
+        class="modal-panel logout-modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-dialog-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="logout-modal-icon-wrapper">
+          <span class="material-symbols-outlined logout-modal-icon">power_settings_new</span>
+        </div>
+
+        <div class="logout-modal-content">
+          <h4 id="logout-dialog-title" class="logout-modal-title font-headline">
+            Deseja realmente sair?
+          </h4>
+          <p class="logout-modal-description">
+            Você será desconectado da conta de
+            <strong class="text-white">{{ usuario()?.nome }}</strong>. Para acessar o painel
+            novamente, será necessário reintroduzir as credenciais.
+          </p>
+        </div>
+
+        <div class="logout-modal-actions">
+          <button
+            type="button"
+            class="btn-secondary"
+            (click)="fecharModalLogout()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn-danger-confirm"
+            (click)="confirmarLogout()"
+          >
+            Confirmar Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

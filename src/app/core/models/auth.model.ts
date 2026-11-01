@@ -11,6 +11,10 @@ export interface CadastroUsuarioRequest {
   readonly senha: string;
 }
 
+export interface AtualizarPerfilRequest {
+  readonly nome: string;
+}
+
 export interface UsuarioResponse {
   readonly id: string;
   readonly nome: string;

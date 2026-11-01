@@ -1,281 +1,148 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import { ContaResponse } from '../../../../core/models/conta.model';
+import { CategoriaResponse } from '../../../../core/models/categoria.model';
 import { AuthService } from '../../../../core/services/auth.service';
+import { CategoriaService } from '../../../../core/services/categoria.service';
+import { ContaService } from '../../../../core/services/conta.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
   selector: 'app-perfil-page',
   standalone: true,
-  template: `
-    <div class="perfil-container">
-      <div class="page-header">
-        <div>
-          <div class="module-badge">
-            <span class="badge-dot"></span>
-            <span class="font-mono">SEGURANÇA & IDENTIDADE</span>
-          </div>
-          <h1 class="page-title font-headline">Perfil do Usuário</h1>
-          <p class="page-subtitle">
-            Dados sincronizados em tempo real via SecurityContext JWT stateless.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          class="btn-secondary"
-          (click)="sincronizarPerfil()"
-          [disabled]="carregando()"
-        >
-          <span class="material-symbols-outlined">sync</span>
-          <span>{{ carregando() ? 'Sincronizando...' : 'Atualizar dados' }}</span>
-        </button>
-      </div>
-
-      @if (authService.usuarioAtual(); as usuario) {
-        <div class="profile-card">
-          <div class="profile-top">
-            <div class="avatar-large">
-              {{ usuario.nome.slice(0, 2).toUpperCase() }}
-            </div>
-            <div>
-              <h2 class="profile-name font-headline">{{ usuario.nome }}</h2>
-              <p class="profile-email">{{ usuario.email }}</p>
-              <div class="profile-badges">
-                <span class="status-pill status-active">
-                  <span class="dot"></span>
-                  {{ usuario.ativo ? 'Conta Ativa' : 'Conta Inativa' }}
-                </span>
-                <span class="role-pill font-mono">{{ usuario.role }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="profile-grid">
-            <div class="info-box">
-              <span class="info-label">Identificador Único (UUID)</span>
-              <span class="info-value font-mono">{{ usuario.id }}</span>
-            </div>
-            <div class="info-box">
-              <span class="info-label">E-mail de Autenticação</span>
-              <span class="info-value">{{ usuario.email }}</span>
-            </div>
-            <div class="info-box">
-              <span class="info-label">Perfil de Acesso</span>
-              <span class="info-value font-mono">{{ usuario.role }}</span>
-            </div>
-            <div class="info-box">
-              <span class="info-label">Isolamento Multiusuário</span>
-              <span class="info-value text-tertiary">Ativo (Propriedade verificada na API)</span>
-            </div>
-          </div>
-
-          <div class="profile-footer">
-            <button type="button" class="logout-action-btn" (click)="authService.logout(true)">
-              <span class="material-symbols-outlined">logout</span>
-              <span>Encerrar sessão atual</span>
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-  `,
-  styles: [
-    `
-      .perfil-container {
-        max-width: 56rem;
-        margin: 0 auto;
-        display: flex;
-        flex-direction: column;
-        gap: 1.75rem;
-      }
-
-      .page-header {
-        display: flex;
-        align-items: flex-end;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-
-      .module-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.6875rem;
-        color: var(--on-surface-variant);
-        margin-bottom: 0.25rem;
-      }
-
-      .badge-dot {
-        width: 0.375rem;
-        height: 0.375rem;
-        border-radius: var(--radius-full);
-        background-color: var(--primary);
-      }
-
-      .page-title {
-        font-size: 1.75rem;
-        font-weight: 600;
-      }
-
-      .page-subtitle {
-        font-size: 0.8125rem;
-        color: var(--on-surface-variant);
-        margin-top: 0.25rem;
-      }
-
-      .profile-card {
-        background-color: var(--surface-container);
-        border: 1px solid var(--outline-variant);
-        border-radius: var(--radius-xl);
-        padding: 1.75rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-
-      .profile-top {
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-        padding-bottom: 1.5rem;
-        border-bottom: 1px solid var(--outline-variant);
-      }
-
-      .avatar-large {
-        width: 4rem;
-        height: 4rem;
-        border-radius: var(--radius-full);
-        background: linear-gradient(135deg, var(--primary-container), var(--surface-container-highest));
-        border: 1px solid var(--outline-variant);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--on-surface);
-      }
-
-      .profile-name {
-        font-size: 1.25rem;
-        font-weight: 600;
-      }
-
-      .profile-email {
-        font-size: 0.8125rem;
-        color: var(--on-surface-variant);
-        margin-top: 0.125rem;
-      }
-
-      .profile-badges {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 0.625rem;
-      }
-
-      .status-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.2rem 0.625rem;
-        border-radius: var(--radius-full);
-        font-size: 0.6875rem;
-        font-weight: 500;
-        background-color: rgba(6, 95, 70, 0.35);
-        color: var(--tertiary);
-      }
-
-      .status-pill .dot {
-        width: 0.375rem;
-        height: 0.375rem;
-        border-radius: var(--radius-full);
-        background-color: var(--tertiary);
-      }
-
-      .role-pill {
-        padding: 0.2rem 0.625rem;
-        border-radius: var(--radius-md);
-        font-size: 0.6875rem;
-        background-color: var(--surface-container-highest);
-        color: var(--secondary-fixed);
-      }
-
-      .profile-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-        gap: 1rem;
-      }
-
-      .info-box {
-        background-color: var(--surface-container-low);
-        border: 1px solid var(--outline-variant);
-        border-radius: var(--radius-lg);
-        padding: 1rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.375rem;
-      }
-
-      .info-label {
-        font-size: 0.6875rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--on-surface-variant);
-      }
-
-      .info-value {
-        font-size: 0.8125rem;
-        font-weight: 500;
-        color: var(--on-surface);
-        word-break: break-all;
-      }
-
-      .text-tertiary {
-        color: var(--tertiary);
-      }
-
-      .profile-footer {
-        padding-top: 1rem;
-        border-top: 1px solid var(--outline-variant);
-        display: flex;
-        justify-content: flex-end;
-      }
-
-      .logout-action-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.55rem 1rem;
-        border-radius: var(--radius-lg);
-        background-color: var(--error-container);
-        color: var(--on-error-container);
-        font-size: 0.8125rem;
-        font-weight: 500;
-      }
-    `,
-  ],
+  imports: [ReactiveFormsModule],
+  templateUrl: './perfil-page.component.html',
+  styleUrl: './perfil-page.component.css',
 })
 export class PerfilPageComponent implements OnInit {
   readonly authService = inject(AuthService);
+  private readonly contaService = inject(ContaService);
+  private readonly categoriaService = inject(CategoriaService);
   private readonly notification = inject(NotificationService);
+  private readonly fb = inject(FormBuilder);
+
+  readonly usuario = computed(() => this.authService.usuarioAtual());
+  readonly contas = signal<ContaResponse[]>([]);
+  readonly categorias = signal<CategoriaResponse[]>([]);
+
   readonly carregando = signal(false);
+  readonly editandoNome = signal(false);
+  readonly salvandoNome = signal(false);
+  readonly modalLogoutAberto = signal(false);
+
+  readonly contasAtivasCount = computed(() => this.contas().filter((c) => c.ativa).length);
+  readonly totalContasCount = computed(() => this.contas().length);
+  readonly totalCategoriasCount = computed(() => this.categorias().length);
+
+  readonly formNome = this.fb.group({
+    nome: [
+      '',
+      [Validators.required, Validators.minLength(2), Validators.maxLength(120)],
+    ],
+  });
 
   ngOnInit(): void {
-    this.sincronizarPerfil(false);
+    this.sincronizarTudo(false);
   }
 
-  sincronizarPerfil(notificar = true): void {
+  sincronizarTudo(notificar = true): void {
     this.carregando.set(true);
-    this.authService.obterPerfil().subscribe({
-      next: () => {
+
+    forkJoin({
+      perfil: this.authService.obterPerfil(),
+      contas: this.contaService.listarTodas(),
+      categorias: this.categoriaService.listarTodas(),
+    }).subscribe({
+      next: ({ contas, categorias }) => {
+        this.contas.set(contas);
+        this.categorias.set(categorias);
         this.carregando.set(false);
         if (notificar) {
-          this.notification.sucesso('Dados do perfil sincronizados com sucesso.');
+          this.notification.sucesso('Dados do perfil e escopo operacional sincronizados.');
         }
       },
       error: () => {
         this.carregando.set(false);
+        // Mesmo em caso de falha de conexão nas métricas, o perfil salvo na sessão continua visível
       },
     });
+  }
+
+  extrairIniciais(nome: string | null | undefined): string {
+    if (!nome) {
+      return 'US';
+    }
+    const partes = nome.trim().split(/\s+/).filter(Boolean);
+    if (partes.length === 0) {
+      return 'US';
+    }
+    if (partes.length === 1) {
+      return partes[0].slice(0, 2).toUpperCase();
+    }
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+  }
+
+  formatarMembroDesde(dataIso: string | null | undefined): string {
+    if (!dataIso) {
+      return 'Data não informada';
+    }
+    const date = new Date(dataIso);
+    if (isNaN(date.getTime())) {
+      return dataIso;
+    }
+    const dia = String(date.getDate()).padStart(2, '0');
+    const mes = String(date.getMonth() + 1).padStart(2, '0');
+    const ano = date.getFullYear();
+    const horas = String(date.getHours()).padStart(2, '0');
+    const minutos = String(date.getMinutes()).padStart(2, '0');
+    return `${dia}/${mes}/${ano} às ${horas}:${minutos}`;
+  }
+
+  iniciarEdicaoNome(): void {
+    this.formNome.patchValue({
+      nome: this.usuario()?.nome ?? '',
+    });
+    this.editandoNome.set(true);
+  }
+
+  cancelarEdicaoNome(): void {
+    this.editandoNome.set(false);
+    this.formNome.reset();
+  }
+
+  salvarNome(): void {
+    if (this.formNome.invalid) {
+      this.formNome.markAllAsTouched();
+      return;
+    }
+
+    const novoNome = this.formNome.value.nome?.trim() ?? '';
+    this.salvandoNome.set(true);
+
+    this.authService.atualizarPerfil({ nome: novoNome }).subscribe({
+      next: () => {
+        this.salvandoNome.set(false);
+        this.editandoNome.set(false);
+        this.notification.sucesso('Nome de exibição atualizado com sucesso.');
+      },
+      error: () => {
+        this.salvandoNome.set(false);
+        this.notification.erro('Falha ao atualizar o nome de exibição.');
+      },
+    });
+  }
+
+  abrirModalLogout(): void {
+    this.modalLogoutAberto.set(true);
+  }
+
+  fecharModalLogout(): void {
+    this.modalLogoutAberto.set(false);
+  }
+
+  confirmarLogout(): void {
+    this.fecharModalLogout();
+    this.authService.logout(true);
   }
 }

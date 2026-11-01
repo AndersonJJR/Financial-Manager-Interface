@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { APP_CONFIG } from '../config/app-config.token';
 import {
+  AtualizarPerfilRequest,
   CadastroUsuarioRequest,
   LoginRequest,
   TokenResponse,
@@ -41,6 +42,15 @@ export class AuthService {
 
   obterPerfil(): Observable<UsuarioResponse> {
     return this.http.get<UsuarioResponse>(`${this.config.apiBaseUrl}/auth/me`).pipe(
+      tap((usuario) => {
+        this.usuarioSignal.set(usuario);
+        this.storage.salvarUsuario(usuario);
+      })
+    );
+  }
+
+  atualizarPerfil(request: AtualizarPerfilRequest): Observable<UsuarioResponse> {
+    return this.http.put<UsuarioResponse>(`${this.config.apiBaseUrl}/auth/me`, request).pipe(
       tap((usuario) => {
         this.usuarioSignal.set(usuario);
         this.storage.salvarUsuario(usuario);
