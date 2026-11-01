@@ -75,4 +75,51 @@ describe('NovoLancamentoPageComponent', () => {
     expect(component.previa().valorPrimeiraParcela).toBe(650);
     expect(component.previa().percentualPago).toBe(10);
   });
+
+  it('BUG-001: deve permitir salvar lançamento Única tipo RECEITA após alternar de Parcelada', () => {
+    const fixture = TestBed.createComponent(NovoLancamentoPageComponent);
+    const component = fixture.componentInstance;
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/v1/contas').flush([
+      {
+        id: 'conta-1',
+        nome: 'Conta Corrente',
+        instituicao: 'Banco',
+        tipo: 'CONTA_CORRENTE',
+        saldoInicial: 0,
+        ativa: true,
+        criadoEm: '2026-10-31T00:00:00',
+        atualizadoEm: '2026-10-31T00:00:00',
+      },
+    ]);
+
+    httpMock.expectOne('/api/v1/categorias').flush([
+      {
+        id: 'cat-rec',
+        nome: 'Salário',
+        descricao: null,
+        corHex: '#10B981',
+        tipo: 'RECEITA',
+        ativa: true,
+        criadoEm: '2026-10-31T00:00:00',
+        atualizadoEm: '2026-10-31T00:00:00',
+      },
+    ]);
+
+    // Fluxo real do usuário: página abre em PARCELADA -> usuário seleciona Única -> Receita
+    component.selecionarModalidade('UNICA');
+    component.definirTipoTransacao('RECEITA');
+
+    component.lancamentoForm.patchValue({
+      descricao: 'Salário de novembro',
+      valorInformado: 5000,
+    });
+
+    const totalParcelas = component.lancamentoForm.controls.totalParcelas;
+    expect(totalParcelas.value).toBe(1);
+    expect(totalParcelas.errors).toBeNull();
+    expect(component.lancamentoForm.controls.categoriaId.value).toBe('cat-rec');
+    expect(component.lancamentoForm.valid).toBe(true);
+  });
 });

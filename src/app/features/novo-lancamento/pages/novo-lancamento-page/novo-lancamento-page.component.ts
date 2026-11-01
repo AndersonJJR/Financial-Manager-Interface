@@ -156,6 +156,7 @@ export class NovoLancamentoPageComponent implements OnInit {
         this.lancamentoForm.controls.totalParcelas.setValue(12);
       }
     }
+    this.aplicarValidadoresTotalParcelas(novaModalidade);
     this.sincronizarCategoriaSelecionada();
   }
 
@@ -166,6 +167,28 @@ export class NovoLancamentoPageComponent implements OnInit {
   definirTipoTransacao(tipo: TipoTransacao): void {
     this.lancamentoForm.controls.tipo.setValue(tipo);
     this.sincronizarCategoriaSelecionada();
+  }
+
+  /**
+   * BUG-001: re-registra os validadores do controle `totalParcelas` em cada troca de
+   * modalidade. O template aplica MinValidator/MaxValidator nativos via atributos
+   * [min]/[max] no input de parcelas; ao alternar para a modalidade UNICA o input é
+   * desmontado (@if) e o validador capturado com o limite da modalidade anterior fica
+   * órfão no FormControl, deixando o formulário permanentemente inválido e
+   * bloqueando o salvamento sem mensagem de erro visível. Reatribuindo os validadores
+   * via setValidators(), o validador órfão é descartado e os limites voltam a refletir
+   * a modalidade atual.
+   */
+  private aplicarValidadoresTotalParcelas(modalidade: ModalidadeTransacao): void {
+    const limites =
+      modalidade === 'PARCELADA' ? { minimo: 2, maximo: 240 } : { minimo: 1, maximo: 60 };
+    const controle = this.lancamentoForm.controls.totalParcelas;
+    controle.setValidators([
+      Validators.required,
+      Validators.min(limites.minimo),
+      Validators.max(limites.maximo),
+    ]);
+    controle.updateValueAndValidity({ emitEvent: false });
   }
 
   private sincronizarCategoriaSelecionada(): void {
@@ -179,6 +202,9 @@ export class NovoLancamentoPageComponent implements OnInit {
   salvarLancamento(): void {
     if (this.lancamentoForm.invalid) {
       this.lancamentoForm.markAllAsTouched();
+      this.notification.erro(
+        'Não foi possível salvar o lançamento. Verifique os campos obrigatórios do formulário.'
+      );
       return;
     }
 

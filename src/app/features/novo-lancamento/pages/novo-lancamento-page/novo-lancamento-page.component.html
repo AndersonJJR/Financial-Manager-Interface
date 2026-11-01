@@ -353,7 +353,9 @@
               <span class="category-rule-hint">
                 <span class="material-symbols-outlined hint-icon">info</span>
                 {{
-                  tipoEfetivo() === 'DESPESA' ? 'Despesa obrigatória' : 'Receita obrigatória'
+                  tipoEfetivo() === 'DESPESA'
+                    ? 'Apenas categorias de Despesa'
+                    : 'Apenas categorias de Receita'
                 }}
               </span>
             </div>
