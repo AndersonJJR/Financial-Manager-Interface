@@ -1,9 +1,20 @@
-import { AbstractControl, ValidationErrors, ValidatorFn } from '@angular/forms';
+import { AbstractControl, ValidationErrors, ValidatorFn, Validators } from '@angular/forms';
 import { ModoValorParcelamento, StatusTransacao } from '../models/transacao.model';
 
 const HEX_COLOR_REGEX = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
 
 export class FinancialValidators {
+  static trimmedEmail(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      const raw = control.value;
+      if (raw === null || raw === undefined || String(raw).trim() === '') {
+        return null;
+      }
+      const trimmedControl = { value: String(raw).trim() } as AbstractControl;
+      return Validators.email(trimmedControl);
+    };
+  }
+
   static notBlank(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const value = control.value;
@@ -123,6 +134,25 @@ export class FinancialValidators {
       if (start && end && start > end) {
         return {
           dateRange: 'A data inicial não pode ser posterior à data final.',
+        };
+      }
+
+      return null;
+    };
+  }
+
+  static passwordMatch(passwordField = 'senha', confirmField = 'confirmarSenha'): ValidatorFn {
+    return (group: AbstractControl): ValidationErrors | null => {
+      const password = group.get(passwordField)?.value as string | null;
+      const confirm = group.get(confirmField)?.value as string | null;
+
+      if (!password || !confirm) {
+        return null;
+      }
+
+      if (password !== confirm) {
+        return {
+          passwordMismatch: 'A confirmação de senha não coincide com a senha informada.',
         };
       }
 

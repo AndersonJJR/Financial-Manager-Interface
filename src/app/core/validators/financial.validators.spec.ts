@@ -76,4 +76,19 @@ describe('FinancialValidators', () => {
     group.patchValue({ dataInicio: '2026-10-01', dataFim: '2026-10-31' });
     expect(group.errors).toBeNull();
   });
+
+  it('deve validar igualdade entre senha e confirmarSenha com passwordMatch', () => {
+    const group = new FormGroup(
+      {
+        senha: new FormControl('Segredo123'),
+        confirmarSenha: new FormControl('Diferente123'),
+      },
+      { validators: [FinancialValidators.passwordMatch()] }
+    );
+
+    expect(group.errors?.['passwordMismatch']).toBeTruthy();
+
+    group.patchValue({ confirmarSenha: 'Segredo123' });
+    expect(group.errors).toBeNull();
+  });
 });
