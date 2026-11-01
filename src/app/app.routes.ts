@@ -8,9 +8,22 @@ export const routes: Routes = [
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () =>
-      import('./features/auth/pages/auth-page/auth-page.component').then(
-        (m) => m.AuthPageComponent
+      import('./features/auth/pages/login-page/login-page.component').then(
+        (m) => m.LoginPageComponent
       ),
+  },
+  {
+    path: 'cadastro',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/cadastro-page/cadastro-page.component').then(
+        (m) => m.CadastroPageComponent
+      ),
+  },
+  {
+    path: 'registrar',
+    redirectTo: 'cadastro',
+    pathMatch: 'full',
   },
   {
     path: '',

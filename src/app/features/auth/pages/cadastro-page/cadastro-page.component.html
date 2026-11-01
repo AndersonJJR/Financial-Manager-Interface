@@ -1,0 +1,284 @@
+<div class="cadastro-viewport">
+  <!-- Ambient Background Radial Glow -->
+  <div class="ambient-glow-wrapper" aria-hidden="true">
+    <div class="ambient-glow ambient-glow--top"></div>
+    <div class="ambient-glow ambient-glow--bottom"></div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="cadastro-container">
+    <!-- Brand Identity Header -->
+    <header class="top-brand-bar">
+      <a routerLink="/login" class="brand-logo-link">
+        <div class="brand-logo-box">
+          <span class="material-symbols-outlined brand-logo-icon">account_balance_wallet</span>
+        </div>
+        <span class="brand-logo-text">FinancialManager</span>
+      </a>
+
+      <div class="security-status">
+        <span class="security-status__dot" aria-hidden="true"></span>
+        <span class="security-status__label">Ambiente Seguro</span>
+      </div>
+    </header>
+
+    <!-- Registration Card (Surface Level 2: #1c1b21) -->
+    <section class="cadastro-card" aria-labelledby="cadastro-heading">
+      <!-- Card Header -->
+      <div class="cadastro-card__header">
+        <div class="setup-kicker">
+          <span class="setup-kicker__primary">Acesso Inicial</span>
+          <span class="setup-kicker__divider">/</span>
+          <span class="setup-kicker__secondary">Setup 01</span>
+        </div>
+
+        <h1 id="cadastro-heading" class="cadastro-card__title">Criar sua conta</h1>
+        <p class="cadastro-card__subtitle">
+          Comece a organizar suas finanças com clareza e autonomia.
+        </p>
+      </div>
+
+      <!-- Registration Form -->
+      <form
+        [formGroup]="cadastroForm"
+        (ngSubmit)="submitCadastro()"
+        class="cadastro-form"
+        novalidate
+      >
+        <!-- Field: Nome Completo -->
+        <div class="field-group">
+          <div class="field-group__header">
+            <label for="cadastro-nome" class="field-label">
+              Nome completo <span class="required-asterisk">*</span>
+            </label>
+            <span class="field-hint">2 a 120 caracteres</span>
+          </div>
+
+          <div class="input-wrapper">
+            <input
+              id="cadastro-nome"
+              type="text"
+              formControlName="nome"
+              autocomplete="name"
+              placeholder="Ex: Mariana Silva"
+              minlength="2"
+              maxlength="120"
+              class="field-input"
+              [class.field-input--error]="hasFieldError('nome')"
+              [class.field-input--valid]="isFieldValid('nome')"
+            />
+          </div>
+          @if (getFieldError('nome'); as error) {
+            <span class="field-error-text" role="alert">{{ error }}</span>
+          }
+        </div>
+
+        <!-- Field: E-mail -->
+        <div class="field-group">
+          <div class="field-group__header">
+            <label for="cadastro-email" class="field-label">
+              E-mail <span class="required-asterisk">*</span>
+            </label>
+            <span class="field-hint">Será o seu identificador de acesso</span>
+          </div>
+
+          <div class="input-wrapper">
+            <input
+              id="cadastro-email"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              placeholder="mariana@email.com"
+              class="field-input"
+              [class.field-input--error]="hasFieldError('email')"
+              [class.field-input--valid]="isFieldValid('email')"
+            />
+          </div>
+          @if (getFieldError('email'); as error) {
+            <span class="field-error-text" role="alert">{{ error }}</span>
+          }
+        </div>
+
+        <!-- Password Grid (2 Columns on Desktop) -->
+        <div class="password-grid">
+          <!-- Field: Senha -->
+          <div class="field-group">
+            <div class="field-group__header">
+              <label for="cadastro-password" class="field-label">
+                Senha <span class="required-asterisk">*</span>
+              </label>
+            </div>
+
+            <div class="input-wrapper">
+              <input
+                id="cadastro-password"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="senha"
+                autocomplete="new-password"
+                placeholder="Mínimo de 6 caracteres"
+                minlength="6"
+                maxlength="100"
+                class="field-input field-input--with-right-btn"
+                [class.field-input--error]="hasFieldError('senha')"
+                [class.field-input--valid]="isFieldValid('senha')"
+              />
+              <button
+                type="button"
+                (click)="togglePasswordVisibility()"
+                class="password-toggle-btn"
+                [attr.aria-label]="showPassword() ? 'Ocultar senha' : 'Mostrar senha'"
+              >
+                <span class="material-symbols-outlined">
+                  {{ showPassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Live Password Length Indicator -->
+            <div class="password-status">
+              <span
+                class="password-status__dot"
+                [class.password-status__dot--ok]="passwordMinLengthMet()"
+                aria-hidden="true"
+              ></span>
+              <span
+                class="password-status__text"
+                [class.password-status__text--ok]="passwordMinLengthMet()"
+              >
+                Mínimo 6 caracteres
+              </span>
+            </div>
+          </div>
+
+          <!-- Field: Confirmar Senha -->
+          <div class="field-group">
+            <div class="field-group__header">
+              <label for="cadastro-confirm-password" class="field-label">
+                Confirmar senha <span class="required-asterisk">*</span>
+              </label>
+            </div>
+
+            <div class="input-wrapper">
+              <input
+                id="cadastro-confirm-password"
+                [type]="showConfirmPassword() ? 'text' : 'password'"
+                formControlName="confirmarSenha"
+                autocomplete="new-password"
+                placeholder="Repita sua senha"
+                minlength="6"
+                maxlength="100"
+                class="field-input field-input--with-right-btn"
+                [class.field-input--error]="hasFieldError('confirmarSenha')"
+                [class.field-input--valid]="isFieldValid('confirmarSenha')"
+              />
+              <button
+                type="button"
+                (click)="toggleConfirmPasswordVisibility()"
+                class="password-toggle-btn"
+                [attr.aria-label]="
+                  showConfirmPassword() ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'
+                "
+              >
+                <span class="material-symbols-outlined">
+                  {{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}
+                </span>
+              </button>
+            </div>
+
+            <!-- Live Password Match Indicator -->
+            <div class="password-status">
+              <span
+                class="password-status__dot"
+                [class.password-status__dot--ok]="passwordMatchStatus() === 'match'"
+                [class.password-status__dot--error]="passwordMatchStatus() === 'mismatch'"
+                aria-hidden="true"
+              ></span>
+              <span
+                class="password-status__text"
+                [class.password-status__text--ok]="passwordMatchStatus() === 'match'"
+                [class.password-status__text--error]="passwordMatchStatus() === 'mismatch'"
+              >
+                {{ passwordMatchLabel() }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terms & Privacy Policy Checkbox -->
+        <div class="terms-row">
+          <label for="cadastro-terms" class="terms-checkbox-label">
+            <span class="custom-checkbox">
+              <input
+                id="cadastro-terms"
+                type="checkbox"
+                formControlName="aceitouTermos"
+                class="custom-checkbox__input"
+              />
+              <span class="custom-checkbox__box">
+                <span class="material-symbols-outlined custom-checkbox__icon">check</span>
+              </span>
+            </span>
+            <span class="terms-text">
+              Li e aceito os
+              <span class="terms-highlight">termos de uso</span> e
+              <span class="terms-highlight">política de privacidade</span>
+              do FinancialManager
+            </span>
+          </label>
+        </div>
+
+        <!-- Post-Signup Guidance Banner -->
+        <div class="onboarding-banner">
+          <span class="material-symbols-outlined onboarding-banner__icon">info</span>
+          <p class="onboarding-banner__text">
+            Após o cadastro, você entrará diretamente na
+            <strong class="onboarding-banner__strong">Visão Geral</strong> e poderá configurar sua primeira conta e categoria.
+          </p>
+        </div>
+
+        <!-- Inline Error State Banner -->
+        @if (errorMessage(); as errorMsg) {
+          <div class="error-banner" role="alert">
+            <span class="material-symbols-outlined error-banner__icon">error</span>
+            <span>{{ errorMsg }}</span>
+          </div>
+        }
+
+        <!-- Primary Action Button -->
+        <div class="submit-row">
+          <button
+            type="submit"
+            class="submit-btn"
+            [disabled]="loading()"
+          >
+            @if (loading()) {
+              <span class="submit-btn__spinner" aria-hidden="true"></span>
+              <span>Criando sua conta...</span>
+            } @else {
+              <span>Criar conta e acessar</span>
+              <span class="material-symbols-outlined submit-btn__arrow">arrow_forward</span>
+            }
+          </button>
+        </div>
+      </form>
+
+      <!-- Secondary Navigation / Footer inside Card -->
+      <div class="cadastro-card__footer">
+        <p class="login-prompt">
+          Já tem uma conta?
+          <a routerLink="/login" class="login-prompt__link">Entrar</a>
+        </p>
+      </div>
+    </section>
+
+    <!-- Technical Metadata Footer -->
+    <footer class="technical-footer">
+      <span class="technical-footer__version">F-MGR // v1.0.4</span>
+      <div class="technical-footer__meta">
+        <span>Obsidian Dark</span>
+        <span>•</span>
+        <span>Zero Telemetria</span>
+      </div>
+    </footer>
+  </main>
+</div>
