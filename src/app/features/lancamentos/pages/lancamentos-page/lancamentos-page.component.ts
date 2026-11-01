@@ -1,4 +1,12 @@
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  OnInit,
+  signal,
+  untracked,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CategoriaResponse } from '../../../../core/models/categoria.model';
@@ -135,12 +143,24 @@ export class LancamentosPageComponent implements OnInit {
   );
 
   constructor() {
+    /**
+     * FIX-002 (BUG-002): sincroniza o intervalo do filtro de Competência com a
+     * competência global escolhida no Header (PeriodoService). A execução do
+     * carregamento fica encapsulada em `untracked()` para que as leituras de
+     * `carregarLancamentos()` — dataInicioFiltro, dataFimFiltro, filtroTipo,
+     * filtroStatus, filtroContaId e filtroCategoriaId — NÃO sejam registradas como
+     * dependências deste effect. Sem isso, qualquer mudança de filtro (inclusive
+     * a data escolhida pelo usuário no popover de Competência) re-executava o
+     * effect e regravava os valores globais do mês, descartando a seleção.
+     */
     effect(() => {
       const inicioMes = this.periodoService.dataInicioMes();
       const fimMes = this.periodoService.dataFimMes();
-      this.dataInicioFiltro.set(inicioMes);
-      this.dataFimFiltro.set(fimMes);
-      this.carregarLancamentos();
+      untracked(() => {
+        this.dataInicioFiltro.set(inicioMes);
+        this.dataFimFiltro.set(fimMes);
+        this.carregarLancamentos();
+      });
     });
   }
 
