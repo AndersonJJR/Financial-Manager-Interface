@@ -1,19 +1,28 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
+import { APP_CONFIG } from '../config/app-config.token';
 import { AuthService } from '../services/auth.service';
 import { StorageService } from '../services/storage.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const storage = inject(StorageService);
   const authService = inject(AuthService);
+  const config = inject(APP_CONFIG);
   const token = storage.obterToken();
 
   const isPublicAuthEndpoint =
     req.url.endsWith('/auth/login') || req.url.endsWith('/auth/registrar');
 
+  // Proteção contra vazamento de credenciais: o token JWT só deve ser anexado
+  // em requisições direcionadas para a API interna da aplicação
+  const isInternalApi =
+    req.url.startsWith(config.apiBaseUrl) ||
+    req.url.startsWith('/api') ||
+    !req.url.startsWith('http');
+
   const authReq =
-    token && !isPublicAuthEndpoint
+    token && isInternalApi && !isPublicAuthEndpoint
       ? req.clone({
           setHeaders: {
             Authorization: `Bearer ${token}`,

@@ -13,6 +13,7 @@ yarn-error.log
 
 # IDEs and editors
 .idea/
+*.iml
 .project
 .classpath
 .c9/
@@ -45,5 +46,10 @@ Thumbs.db
 
 # Environment & Design Reference
 .env
+.env.local
 /todo
+
+# Documentation, Notes & Out-of-Scope Files
+documentation.md
+bugs.md
 
