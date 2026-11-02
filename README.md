@@ -197,8 +197,6 @@ A interface será servida na porta `80` (`http://localhost`).
 
 **Anderson Chaves Júnior**
 
-Engenheiro de Software com foco em Java, Spring Boot e Arquitetura de Sistemas.
-
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Anderson%20Chaves-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/andersonchavesjunior/)
 
 </div>
